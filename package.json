@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@chain-registry/keplr": "^1.68.58",
+    "@cosmjs/stargate": "^0.32.4",
     "@ethersproject/address": "^5.7.0",
     "@keplr-wallet/common": "^0.12.96",
     "@keplr-wallet/cosmos": "^0.12.96",

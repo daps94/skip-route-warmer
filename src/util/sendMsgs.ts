@@ -8,7 +8,6 @@ import {Any} from "../proto-types-gen/src/google/protobuf/any";
 import Long from "long";
 import {Buffer} from "buffer";
 import {TendermintTxTracer} from "@keplr-wallet/cosmos";
-import ts from "typescript";
 
 export const sendMsgs = async (
   keplr:Keplr,

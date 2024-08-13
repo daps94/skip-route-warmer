@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dec, DecUtils } from "@keplr-wallet/unit";
 import { sendMsgs } from "./util/sendMsgs";
 import { simulateMsgs } from "./util/simulateMsgs";
 import "./styles/container.css";
-import "./styles/button.css";
 import "./styles/item.css";
 import { assets, chains } from 'chain-registry';
 import { chainRegistryChainToKeplr } from '@chain-registry/keplr';
@@ -11,30 +10,31 @@ import { ChainInfo } from '@keplr-wallet/types';
 import { MsgTransfer } from "./proto-types-gen/src/ibc/applications/transfer/v1/tx";
 import { Coin } from "./proto-types-gen/src/cosmos/base/v1beta1/coin";
 import { Height } from "./proto-types-gen/src/ibc/core/client/v1/client";
+import Button from "./components/Button";
+import InputField from "./components/InputField";
+
 
 function App() {
   const [address, setAddress] = useState("");
-  const [denom, setDenom] = useState("");
-  const [recipient, setRecipient] = useState("");
-  const [originChain, setOriginChain] = useState("");
-  const [amount, setAmount] = useState("");
-  const [channelId, setChannelId] = useState("");
+  const [denom, setDenom] = useState("uion");
+  const [recipient, setRecipient] = useState("cosmos14pvzmutp80ugg57699527m567tfwzhjaqs8k2p");
+  const [originChain, setOriginChain] = useState("osmosis-1");
+  const [amount, setAmount] = useState("0.000001");
+  const [sourceChannel, setSourceChannel] = useState("channel-1");
   const [chainInfo, setChainInfo] = useState<ChainInfo | null>(null);
 
-  const onChainSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedChainId = e.target.value;
-    setOriginChain(selectedChainId);
-
-    const selectedChain = chains.find(chain => chain.chain_id === selectedChainId);
+  useEffect(() => {
+    const selectedChain = chains.find(chain => chain.chain_id === originChain);
     if (selectedChain) {
       const config: ChainInfo = chainRegistryChainToKeplr(selectedChain, assets, {
-        getRestEndpoint: (chain) => chain.apis?.rest?.[0]?.address ?? "",
-        getRpcEndpoint: (chain) => chain.apis?.rpc?.[0]?.address ?? ""
-      });
-      console.log('config', config);
+      // Whispernode widely available & reliable-ish rest endpoint
+        getRestEndpoint: (chain) => chain?.apis?.rest?.find((chain) => chain.provider?.includes('WhisperNode'))?.address ?? "", 
+      })
       setChainInfo(config);
     }
-  };
+  }
+  , [originChain]);
+
 
   const getKeyFromKeplr = async () => {
     if (chainInfo) {
@@ -48,14 +48,12 @@ function App() {
   const sendIBCTransfer = async () => {
     if (window.keplr && chainInfo) {
       const key = await window.keplr?.getKey(chainInfo.chainId);
-  
       
       const timeoutHeight: Height = {
         revisionNumber: "0",
         revisionHeight: "0",
       };
 
-      const timeoutTimestamp = (Math.floor(Date.now() / 1000) + 600) * (1000000000); // 10 minutes from now, in nanoseconds
 
       const token: Coin = {
         denom: denom,
@@ -65,29 +63,28 @@ function App() {
           .toString(),
       };
 
+
       const msg: MsgTransfer = {
         sourcePort: "transfer",
-        sourceChannel: channelId,
-        token: token,
+        sourceChannel,
+        token,
         sender: key.bech32Address,
         receiver: recipient,
         timeoutHeight: timeoutHeight,
-        timeoutTimestamp: timeoutTimestamp.toString(),
+        timeoutTimestamp: (Math.floor(Date.now() / 1000) + 600 * 1000000000).toString(), // 10 minutes from now, in nanoseconds,
         memo: "",
       };
-      console.log('msg', msg)
 
       const protoMsg = {
         typeUrl: "/ibc.applications.transfer.v1.MsgTransfer",
         value: MsgTransfer.encode(msg).finish(),
       };
 
-      try {
         const gasUsed = await simulateMsgs(
           chainInfo,
           key.bech32Address,
           [protoMsg],
-          [{ denom: chainInfo.feeCurrencies[0].coinMinimalDenom, amount: "236" }]
+          [{ denom: chainInfo.feeCurrencies[0].coinMinimalDenom, amount }]
         );
         console.log('gasUsed', gasUsed)
 
@@ -98,16 +95,11 @@ function App() {
             key.bech32Address,
             [protoMsg],
             {
-              amount: [{ denom: chainInfo.feeCurrencies[0].coinMinimalDenom, amount: "236" }],
+              amount: [{ denom: chainInfo.feeCurrencies[0].coinMinimalDenom, amount }],
               gas: Math.floor(gasUsed * 1.5).toString(),
             }
           );
         }
-      } catch (e) {
-        if (e instanceof Error) {
-          console.log(e.message);
-        }
-      }
     }
   };
 
@@ -115,72 +107,48 @@ function App() {
     <div className="root-container">
       <div className="item-container">
         <div className="item">
-          <div className="item-title">Warm IBC Route</div>
-
+          <div className="item-title">Route Warmer</div>
           <div className="item-content">
-            <div>
               Origin Chain
-              <select value={originChain} onChange={onChainSelect}>
-                <option value="">Select a chain</option>
+              <select value={originChain} onChange={(e) => setOriginChain(e.target.value)}>
+                Select origin  chain
                 {chains
-                // @ts-ignore
-                .filter((chain) => chain?.chain_type === 'cosmos')
-                .map((chain) => (
-                  <option key={chain.chain_id} value={chain.chain_id}>
-                    {chain.chain_name}
-                  </option>
-                ))}
+                  // @ts-ignore
+                  .filter((chain) => chain?.chain_type === 'cosmos')
+                  .map((chain) => (
+                    <option key={chain.chain_id} value={chain.chain_id}>
+                      {chain.chain_name}
+                    </option>
+                  ))}
               </select>
-            </div>
-
             {chainInfo && (
               <>
                 <div>
-                  <button className="keplr-button" onClick={getKeyFromKeplr}>
-                    Get Address
-                  </button>
-                  <div>Address: {address}</div>
+                  <Button label="Get Address" onClick={getKeyFromKeplr} />
+                  {address && <div>{address}</div>}
                 </div>
-
-                <div>
-                  Recipient
-                  <input
-                    type="text"
-                    value={recipient}
-                    onChange={(e) => setRecipient(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  Amount
-                  <input
-                    type="text"
-                    value={amount}
+                <InputField 
+                  label="Recipient"
+                  value={recipient}
+                  onChange={(e) => setRecipient(e.target.value)}
+                />
+                <InputField 
+                  label="Amount"
+                  value={amount}
                     onChange={(e) => setAmount(e.target.value)}
+                />
+                <InputField 
+                  label="Denom"
+                  value={denom}
+                  onChange={(e) => setDenom(e.target.value)}
                   />
-                </div>
-
-                <div>
-                  Denom
-                  <input
-                    type="text"
-                    value={denom}
-                    onChange={(e) => setDenom(e.target.value)}
+                <InputField 
+                  label="Source Channel"
+                  value={denom}
+                  placeholder="channel-0"
+                    onChange={(e) => setSourceChannel(e.target.value)}
                   />
-                </div>
-
-                <div>
-                  Channel ID
-                  <input
-                    type="text"
-                    value={channelId}
-                    onChange={(e) => setChannelId(e.target.value)}
-                  />
-                </div>
-
-                <button className="keplr-button" onClick={sendIBCTransfer}>
-                  Warm IBC Route
-                </button>
+                <Button  label="Warm IBC Route" onClick={sendIBCTransfer} />
               </>
             )}
           </div>

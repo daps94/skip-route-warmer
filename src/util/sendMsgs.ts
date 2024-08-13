@@ -8,6 +8,7 @@ import {Any} from "../proto-types-gen/src/google/protobuf/any";
 import Long from "long";
 import {Buffer} from "buffer";
 import {TendermintTxTracer} from "@keplr-wallet/cosmos";
+import ts from "typescript";
 
 export const sendMsgs = async (
   keplr:Keplr,
@@ -70,6 +71,7 @@ export const sendMsgs = async (
       tx: TxRaw.encode({
         bodyBytes: signed.signed.bodyBytes,
         authInfoBytes: signed.signed.authInfoBytes,
+        // @ts-ignore
         signatures: [Buffer.from(signed.signature.signature, "base64")],
       }).finish(),
       signDoc: signed.signed,
@@ -78,7 +80,7 @@ export const sendMsgs = async (
     const txHash = await broadcastTxSync(keplr, chainInfo.chainId, signedTx.tx);
     const txTracer = new TendermintTxTracer(chainInfo.rpc, "/websocket");
     txTracer.traceTx(txHash).then((tx) => {
-      alert("Transaction commit successfully");
+      alert("Transaction commit successfully" + JSON.stringify(tx));
     });
 
   }
@@ -91,7 +93,7 @@ export const fetchAccountInfo = async (chainInfo: ChainInfo, address: string) =>
 
     return response.account;
   } catch (e) {
-    console.error("This may be a new account. Please send some tokens to this account first.")
+    alert("This may be a new account. Please send some tokens to this account first.")
     return undefined;
   }
 }

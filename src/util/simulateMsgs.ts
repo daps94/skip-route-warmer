@@ -5,7 +5,6 @@ import {SignMode} from "../proto-types-gen/src/cosmos/tx/signing/v1beta1/signing
 import {fetchAccountInfo} from "./sendMsgs";
 import {api} from "./api";
 import {GasSimulateResponse} from "../types/simulate";
-import {OsmosisChainInfo} from "../constants";
 
 export const simulateMsgs = async (
   chainInfo: ChainInfo,
@@ -18,8 +17,7 @@ export const simulateMsgs = async (
   memo: string = ""
 ) => {
   const account = await fetchAccountInfo(chainInfo, sender);
-
-  if(account) {
+  if (account) {
     const unsignedTx =TxRaw.encode( {
       bodyBytes: TxBody.encode(
         TxBody.fromPartial({
@@ -55,17 +53,15 @@ export const simulateMsgs = async (
       // However, since they do not actually verify the signature, it is okay to use any value.
       signatures: [new Uint8Array(64)],
     }).finish()
-
-    const simulatedResult = await api<GasSimulateResponse>(`${OsmosisChainInfo.rest}/cosmos/tx/v1beta1/simulate`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        tx_bytes: Buffer.from(unsignedTx).toString("base64")
+      const simulatedResult = await api<GasSimulateResponse>(`${chainInfo.rest}/cosmos/tx/v1beta1/simulate`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          tx_bytes: Buffer.from(unsignedTx).toString("base64")
+        })
       })
-    })
-
     const gasUsed = parseInt(simulatedResult.gas_info.gas_used);
     if (Number.isNaN(gasUsed)) {
       throw new Error(`Invalid integer gas: ${simulatedResult.gas_info.gas_used}`);
@@ -73,6 +69,4 @@ export const simulateMsgs = async (
 
     return gasUsed;
   }
-
-  return undefined;
-}
+};

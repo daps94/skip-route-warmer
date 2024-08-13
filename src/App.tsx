@@ -122,7 +122,10 @@ function App() {
               Origin Chain
               <select value={originChain} onChange={onChainSelect}>
                 <option value="">Select a chain</option>
-                {chains.map((chain) => (
+                {chains
+                // @ts-ignore
+                .filter((chain) => chain?.chain_type === 'cosmos')
+                .map((chain) => (
                   <option key={chain.chain_id} value={chain.chain_id}>
                     {chain.chain_name}
                   </option>

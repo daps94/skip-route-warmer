@@ -14,6 +14,7 @@ import Button from "./components/Button";
 import InputField from "./components/InputField";
 import { fetchChannelRecommendation } from "./util/skip";
 import { getChainIdFromAddress, validateRestApi } from "./util/common";
+import { useBalances } from "./util/bank";
 
 function App() {
   const [address, setAddress] = useState("");
@@ -23,9 +24,11 @@ function App() {
   const [sourceChannel, setSourceChannel] = useState("");
   const [chainInfo, setChainInfo] = useState<ChainInfo | null>(null);
   const [loading, setLoading] = useState(false);
+  const { balances } = useBalances(chainInfo, address);
   const feeDenom = useMemo(() => 
     chainInfo?.feeCurrencies?.[0].coinMinimalDenom ?? "" , [chainInfo]
 ); 
+console.log('balances', balances)
 
 useEffect(() => {
   const selectedChain = chains.find(chain => chain.chain_id === sourceChainId);
@@ -158,18 +161,18 @@ useEffect(() => {
               </select>
               {address ? (
                 <>
-                <div>Address: {address}</div>
                   <InputField 
                     label="Recipient"
                     value={recipient}
                     onChange={(e) => setRecipient(e.target.value)}
                   />
-                  <InputField 
-                    label="Denom"
-                    value={denom}
-                    placeholder="native, factory, or IBC token denom on origin chain"
-                    onChange={(e) => setDenom(e.target.value)}
-                  />
+                  <select value={denom} onChange={(e) => setDenom(e.target.value)}>
+                  {balances.map((balance) => (
+                      <option key={balance.denom} value={balance.denom}>
+                        {balance.denom}
+                      </option>
+                      ))}
+                  </select>
                   <InputField 
                     label="Source Channel"
                     value={sourceChannel}

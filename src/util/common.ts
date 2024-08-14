@@ -17,16 +17,13 @@ export const validateRestApi = async (chain: Chain) => {
     return null;
   }
 
-  for (const restApi of chain.apis.rest) {
+  for (const { address } of chain.apis.rest) {
     try {
-      const res = await api<AccountResponse>(`${restApi.address}/cosmos/bank/v1beta1/balances/${randomAddress(chain.bech32_prefix)}`);
-      if (res) {
-        console.log(`Valid REST endpoint found: ${restApi.address}`);
-        return restApi.address;
-      }
+      const res = await api<AccountResponse>(`${address}/cosmos/bank/v1beta1/balances/${randomAddress(chain.bech32_prefix)}`);
+      if (res) return address;
     }
     catch (e) {
-      console.error(`REST endpoint ${restApi.address} is not valid.`);
+      console.error(`REST endpoint ${address} is not valid.`);
     }
   }
 
@@ -34,7 +31,7 @@ export const validateRestApi = async (chain: Chain) => {
   return null;
 };
 
-export function randomAddress(prefix = "terra") {
+export function randomAddress(prefix: string) {
   const RANDOM_WORDS = [...Array(64)]
     .map(() => Math.random().toString(16).slice(-1))
     .join("")

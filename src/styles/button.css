@@ -31,3 +31,11 @@
 .skip-button:hover {
     opacity: 0.9;
 }
+
+.skip-button:disabled,
+.skip-button.disabled-button {
+    background-color: #ccc; /* Light grey background */
+    color: #666; /* Grey text color */
+    cursor: not-allowed; /* Change cursor to indicate it's disabled */
+    opacity: 0.6; /* Make it slightly transparent */
+}

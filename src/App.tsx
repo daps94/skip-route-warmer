@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Dec, DecUtils } from "@keplr-wallet/unit";
 import { sendMsgs } from "./util/sendMsgs";
 import { simulateMsgs } from "./util/simulateMsgs";
@@ -13,18 +13,20 @@ import { Coin } from "./proto-types-gen/src/cosmos/base/v1beta1/coin";
 import { Height } from "./proto-types-gen/src/ibc/core/client/v1/client";
 import Button from "./components/Button";
 import InputField from "./components/InputField";
+import { fetchChannelRecommendation } from "./util/skip";
+import { getChainIdFromAddress } from "./util/common";
 
 function App() {
   const [address, setAddress] = useState("");
   const [denom, setDenom] = useState("uion");
   const [recipient, setRecipient] = useState("cosmos14pvzmutp80ugg57699527m567tfwzhjaqs8k2p");
-  const [originChain, setOriginChain] = useState("osmosis-1");
-  const [sourceChannel, setSourceChannel] = useState("channel-1");
+  const [sourceChainId, setsourceChainId] = useState("osmosis-1");
+  const [sourceChannel, setSourceChannel] = useState("");
   const [chainInfo, setChainInfo] = useState<ChainInfo | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const selectedChain = chains.find(chain => chain.chain_id === originChain);
+    const selectedChain = chains.find(chain => chain.chain_id === sourceChainId);
     if (selectedChain) {
       const config: ChainInfo = chainRegistryChainToKeplr(selectedChain, assets, {
         // reliable-ish rest endpoint
@@ -33,11 +35,40 @@ function App() {
       setChainInfo(config);
     }
   }
-  , [originChain]);
+  , [sourceChainId]);
 
   useEffect(() => {
     setAddress("");
   }, [chainInfo])
+
+  useEffect(() => {
+    if (!window.keplr) alert("Please install Keplr extension");
+  }, [])
+
+  const feeDenom = useMemo(() => {
+    if (chainInfo) {
+      return chainInfo.feeCurrencies[0].coinMinimalDenom;
+    }
+    return "";
+  }
+  , [chainInfo]);
+
+  useEffect(() => {
+    const updateChannelRecommendation = async () => {
+      setSourceChannel("");
+      if (feeDenom && sourceChainId && recipient) {
+        const channel = await fetchChannelRecommendation({
+          sourceDenom: feeDenom,
+          sourceChainId,
+          destChainId: getChainIdFromAddress(recipient), // Assuming recipient chain ID is the correct one
+        });
+
+        if (channel) setSourceChannel(channel);
+      }
+    };
+
+    updateChannelRecommendation();
+  }, [feeDenom, sourceChainId, recipient]);
 
 
   const getKeyFromKeplr = async () => {
@@ -49,8 +80,9 @@ function App() {
     }
   };
 
-  const sendIBCTransfer = async () => {
+  const transfer = async () => {
     if (window.keplr && chainInfo) {
+
       setLoading(true)
       const key = await window.keplr?.getKey(chainInfo.chainId);
   
@@ -103,13 +135,12 @@ function App() {
             }
           );
         }
-        setLoading(false);
       } catch (e) {
-        setLoading(false);
         if (e instanceof Error) {
           alert(e.message);
         }
       }
+      setLoading(false);
     }
   };
 
@@ -120,7 +151,7 @@ function App() {
           <div className="item-title">IBC Route Warmer</div>
           <div className="item-content">
               Origin Chain
-              <select value={originChain} onChange={(e) => setOriginChain(e.target.value)}>
+              <select value={sourceChainId} onChange={(e) => setsourceChainId(e.target.value)}>
                 {chains
                   // @ts-ignore
                   .filter((chain) => chain?.chain_type === 'cosmos' && chain?.network_type === 'mainnet')
@@ -150,7 +181,9 @@ function App() {
                     placeholder="channel-0"
                     onChange={(e) => setSourceChannel(e.target.value)}
                   />
-                  <Button disabled={loading} label={loading ? "Loading..." : "🔥 Warm ️‍🔥"} onClick={sendIBCTransfer} />
+                  <Button disabled={loading || !denom || !sourceChannel || !recipient}
+                    label={loading ? "Loading..." : "🔥 Warm ️‍🔥"} onClick={transfer} 
+                  />
                 </>
               )
               : <Button label="Connect" onClick={getKeyFromKeplr} />

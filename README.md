@@ -17,3 +17,7 @@ Run development Server
 ```bash
 yarn start
 ```
+
+Problems
+
+Websocket connection in TendermintTxTracer occasionaly fails and does not provide user with a hash on succesful tx.

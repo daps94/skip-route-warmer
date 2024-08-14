@@ -19,7 +19,8 @@ export const validateRestApi = async (chain: Chain) => {
 
   for (const { address } of chain.apis.rest) {
     try {
-      const res = await api<AccountResponse>(`${address}/cosmos/bank/v1beta1/balances/${randomAddress(chain.bech32_prefix)}`);
+      const uri = `${address}/cosmos/bank/v1beta1/balances/${randomAddress(chain.bech32_prefix)}`;
+      const res = await api<AccountResponse>(uri);
       if (res) return address;
     }
     catch (e) {

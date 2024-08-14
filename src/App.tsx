@@ -5,9 +5,9 @@ import { chains } from "chain-registry";
 import { useChainInfo, useKeplrAddress, useChannelRecommendation, useBalances } from "./util/hooks"; 
 import { sendMsgs } from "./util/sendMsgs";
 import { simulateMsgs } from "./util/simulateMsgs";
-import { Coin } from "./proto-types-gen/src/cosmos/base/v1beta1/coin";
-import { MsgTransfer } from "./proto-types-gen/src/ibc/applications/transfer/v1/tx";
-import { Height } from "./proto-types-gen/src/ibc/core/client/v1/client";
+import { Coin } from "@cosmjs/stargate";
+import { MsgTransfer } from "@keplr-wallet/proto-types/ibc/applications/transfer/v1/tx";
+import { Height } from "@keplr-wallet/proto-types/ibc/core/client/v1/client";
 import "./styles/container.css";
 import "./styles/button.css";
 import "./styles/item.css";
@@ -15,7 +15,7 @@ import "./styles/item.css";
 function App() {
   const [denom, setDenom] = useState("");
   const [recipient, setRecipient] = useState("");
-  const [sourceChainId, setSourceChainId] = useState("noble-1");
+  const [sourceChainId, setSourceChainId] = useState("osmosis-1");
   const [loading, setLoading] = useState(false);
 
   const chainInfo = useChainInfo(sourceChainId);
@@ -77,7 +77,7 @@ function App() {
         <div className="item">
           <div className="item-title">IBC Route Warmer</div>
           <div className="item-content">
-            Origin Chain
+            Source Chain
             <select value={sourceChainId} onChange={(e) => setSourceChainId(e.target.value)}>
               {chains
               // @ts-ignore
@@ -90,8 +90,7 @@ function App() {
             </select>
             {address ? (
               <>
-                <InputField label="Recipient" value={recipient} onChange={(e) => setRecipient(e.target.value)} />
-                Denom
+               Denom
                 <select value={denom} onChange={(e) => setDenom(e.target.value)}>
                   {balances.map((balance) => (
                     <option key={balance.denom} value={balance.denom}>
@@ -99,6 +98,7 @@ function App() {
                     </option>
                   ))}
                 </select>
+                <InputField label="Recipient" value={recipient} onChange={(e) => setRecipient(e.target.value)} />
                 <InputField
                   label="Source Channel"
                   value={sourceChannel}

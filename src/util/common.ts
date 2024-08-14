@@ -11,10 +11,7 @@ export const getChainIdFromAddress = (address: string) => {
 };
 
 export const validateRestApi = async (chain: Chain) => {
-  if (!chain.apis?.rest) {
-    console.error('No REST endpoints available for this chain.');
-    return null;
-  }
+  if (!chain.apis?.rest) return null;
 
   for (const { address } of chain.apis.rest) {
     try {

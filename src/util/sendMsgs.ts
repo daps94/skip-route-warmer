@@ -1,10 +1,10 @@
 import { BroadcastMode, ChainInfo, Keplr, StdFee } from "@keplr-wallet/types";
 import { AccountResponse } from "../types/account";
 import { api } from "./api";
-import { AuthInfo, Fee, TxBody, TxRaw } from "../proto-types-gen/src/cosmos/tx/v1beta1/tx";
-import { SignMode } from "../proto-types-gen/src/cosmos/tx/signing/v1beta1/signing";
-import { PubKey } from "../proto-types-gen/src/cosmos/crypto/secp256k1/keys";
-import { Any } from "../proto-types-gen/src/google/protobuf/any";
+import { AuthInfo, Fee, TxBody, TxRaw } from "@keplr-wallet/proto-types/cosmos/tx/v1beta1/tx";
+import { SignMode } from "@keplr-wallet/proto-types/cosmos/tx/signing/v1beta1/signing";
+import { PubKey } from "@keplr-wallet/proto-types/cosmos/crypto/secp256k1/keys";
+import { Any } from "@keplr-wallet/proto-types/google/protobuf/any";
 import Long from "long";
 import { Buffer } from "buffer";
 import { TendermintTxTracer } from "@keplr-wallet/cosmos";
@@ -20,7 +20,7 @@ export const sendMsgs = async (
   const account = await fetchAccountInfo(chainInfo, sender);
   const { pubKey } = await keplr.getKey(chainInfo.chainId);
 
-  if(account) {
+  if (account) {
     const signDoc = {
       bodyBytes: TxBody.encode(
         TxBody.fromPartial({
@@ -79,7 +79,6 @@ export const sendMsgs = async (
     const txHash = await broadcastTxSync(keplr, chainInfo.chainId, signedTx.tx);
     const txTracer = new TendermintTxTracer(chainInfo.rpc, "/websocket");
     txTracer.traceTx(txHash).then((tx) => {
-      console.log('tx', tx)
       alert("Transaction hash: " + Buffer.from(txHash).toString('hex'));
     });
 
@@ -90,7 +89,6 @@ export const fetchAccountInfo = async (chainInfo: ChainInfo, address: string) =>
   try {
     const uri = `${chainInfo.rest}/cosmos/auth/v1beta1/accounts/${address}`;
     const response = await api<AccountResponse>(uri);
-
     return response.account;
   } catch (e) {
     return undefined;
@@ -102,5 +100,5 @@ export const broadcastTxSync = async (
   chainId: string,
   tx: Uint8Array,
 ): Promise<Uint8Array> => {
-  return keplr.sendTx(chainId,  tx, "sync" as BroadcastMode)
+  return keplr.sendTx(chainId, tx, "sync" as BroadcastMode)
 }

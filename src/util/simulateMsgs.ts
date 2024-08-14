@@ -1,7 +1,7 @@
 import { ChainInfo } from "@keplr-wallet/types";
-import { Any } from "../proto-types-gen/src/google/protobuf/any";
-import { AuthInfo, Fee, SignerInfo, TxBody, TxRaw } from "../proto-types-gen/src/cosmos/tx/v1beta1/tx";
-import { SignMode } from "../proto-types-gen/src/cosmos/tx/signing/v1beta1/signing";
+import { Any } from "@keplr-wallet/proto-types/google/protobuf/any";
+import { AuthInfo, Fee, SignerInfo, TxBody, TxRaw } from "@keplr-wallet/proto-types/cosmos/tx/v1beta1/tx";
+import { SignMode } from "@keplr-wallet/proto-types/cosmos/tx/signing/v1beta1/signing";
 import { fetchAccountInfo } from "./sendMsgs";
 import { api } from "./api";
 import { GasSimulateResponse } from "../types/simulate";

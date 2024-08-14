@@ -2095,7 +2095,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ethersproject/address@npm:^5.6.0, @ethersproject/address@npm:^5.7.0":
+"@ethersproject/address@npm:^5.6.0":
   version: 5.7.0
   resolution: "@ethersproject/address@npm:5.7.0"
   dependencies:
@@ -2628,6 +2628,16 @@ __metadata:
     long: ^4.0.0
     protobufjs: ^6.11.2
   checksum: 814945fa3a3e3b1fb559d930cb940ecb4f64231663a71708f2f642819a563335ee9121436368a64569c2adb5e57b871b39d15c67e24291a848687ff8755e2079
+  languageName: node
+  linkType: hard
+
+"@keplr-wallet/proto-types@npm:^0.12.121":
+  version: 0.12.121
+  resolution: "@keplr-wallet/proto-types@npm:0.12.121"
+  dependencies:
+    long: ^4.0.0
+    protobufjs: ^6.11.2
+  checksum: c2db72091bd13cf5222fb174e0eff735a46f4d58ecce561009d847d8b4867afe5ff9d6b2374f8679490728e5ab81bec05abafa4c024f12d3a47ddc803f27aa93
   languageName: node
   linkType: hard
 
@@ -9547,9 +9557,9 @@ __metadata:
   dependencies:
     "@chain-registry/keplr": ^1.68.58
     "@cosmjs/stargate": ^0.32.4
-    "@ethersproject/address": ^5.7.0
     "@keplr-wallet/common": ^0.12.96
     "@keplr-wallet/cosmos": ^0.12.96
+    "@keplr-wallet/proto-types": ^0.12.121
     "@keplr-wallet/provider-extension": ^0.12.96
     "@keplr-wallet/types": ^0.12.96
     "@keplr-wallet/unit": ^0.12.96

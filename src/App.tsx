@@ -18,8 +18,8 @@ import { getChainIdFromAddress } from "./util/common";
 
 function App() {
   const [address, setAddress] = useState("");
-  const [denom, setDenom] = useState("uion");
-  const [recipient, setRecipient] = useState("cosmos14pvzmutp80ugg57699527m567tfwzhjaqs8k2p");
+  const [denom, setDenom] = useState("");
+  const [recipient, setRecipient] = useState("");
   const [sourceChainId, setsourceChainId] = useState("osmosis-1");
   const [sourceChannel, setSourceChannel] = useState("");
   const [chainInfo, setChainInfo] = useState<ChainInfo | null>(null);
@@ -30,7 +30,7 @@ function App() {
     if (selectedChain) {
       const config: ChainInfo = chainRegistryChainToKeplr(selectedChain, assets, {
         // reliable-ish rest endpoint
-        // getRestEndpoint: (chain) => chain?.apis?.rest?.find((chain) => chain.provider?.includes('WhisperNode'))?.address ?? "",
+        getRestEndpoint: (chain) => chain?.apis?.rest?.find((chain) => chain.provider?.includes('WhisperNode'))?.address ?? "",
       })
       setChainInfo(config);
     }
@@ -181,7 +181,7 @@ function App() {
                     placeholder="channel-0"
                     onChange={(e) => setSourceChannel(e.target.value)}
                   />
-                  <Button disabled={loading || !denom || !sourceChannel || !recipient}
+                  <Button disabled={loading || !denom || !sourceChannel.startsWith("channel-") || !recipient}
                     label={loading ? "Loading..." : "🔥 Warm ️‍🔥"} onClick={transfer} 
                   />
                 </>

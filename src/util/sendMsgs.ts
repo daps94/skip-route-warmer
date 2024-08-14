@@ -93,7 +93,6 @@ export const fetchAccountInfo = async (chainInfo: ChainInfo, address: string) =>
 
     return response.account;
   } catch (e) {
-    alert("This may be a new account. Please send some tokens to this account first.")
     return undefined;
   }
 }

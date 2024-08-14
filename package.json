@@ -14,6 +14,7 @@
     "@types/node": "^16.18.48",
     "@types/react": "^18.2.21",
     "@types/react-dom": "^18.2.7",
+    "bech32": "^2.0.0",
     "chain-registry": "1.63.57",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Dec, DecUtils } from "@keplr-wallet/unit";
 import { sendMsgs } from "./util/sendMsgs";
 import { simulateMsgs } from "./util/simulateMsgs";
 import "./styles/container.css";
@@ -14,7 +13,7 @@ import { Height } from "./proto-types-gen/src/ibc/core/client/v1/client";
 import Button from "./components/Button";
 import InputField from "./components/InputField";
 import { fetchChannelRecommendation } from "./util/skip";
-import { getChainIdFromAddress } from "./util/common";
+import { getChainIdFromAddress, validateRestApi } from "./util/common";
 
 function App() {
   const [address, setAddress] = useState("");
@@ -24,18 +23,25 @@ function App() {
   const [sourceChannel, setSourceChannel] = useState("");
   const [chainInfo, setChainInfo] = useState<ChainInfo | null>(null);
   const [loading, setLoading] = useState(false);
+  const feeDenom = useMemo(() => 
+    chainInfo?.feeCurrencies?.[0].coinMinimalDenom ?? "" , [chainInfo]
+); 
 
-  useEffect(() => {
-    const selectedChain = chains.find(chain => chain.chain_id === sourceChainId);
-    if (selectedChain) {
-      const config: ChainInfo = chainRegistryChainToKeplr(selectedChain, assets, {
-        // reliable-ish rest endpoint
-        getRestEndpoint: (chain) => chain?.apis?.rest?.find((chain) => chain.provider?.includes('WhisperNode'))?.address ?? "",
-      })
-      setChainInfo(config);
-    }
+useEffect(() => {
+  const selectedChain = chains.find(chain => chain.chain_id === sourceChainId);
+  if (!selectedChain) return
+
+  const configureChainInfo = async () => {
+    const restEndpoint = await validateRestApi(selectedChain);
+    if (!restEndpoint) return;
+    const config: ChainInfo = chainRegistryChainToKeplr(selectedChain, assets, {
+      getRestEndpoint: () => restEndpoint, 
+    });
+    setChainInfo(config);
   }
-  , [sourceChainId]);
+
+  configureChainInfo();
+}, [sourceChainId]);
 
   useEffect(() => {
     setAddress("");
@@ -44,14 +50,6 @@ function App() {
   useEffect(() => {
     if (!window.keplr) alert("Please install Keplr extension");
   }, [])
-
-  const feeDenom = useMemo(() => {
-    if (chainInfo) {
-      return chainInfo.feeCurrencies[0].coinMinimalDenom;
-    }
-    return "";
-  }
-  , [chainInfo]);
 
   useEffect(() => {
     const updateChannelRecommendation = async () => {
@@ -82,11 +80,8 @@ function App() {
 
   const transfer = async () => {
     if (window.keplr && chainInfo) {
-
       setLoading(true)
       const key = await window.keplr?.getKey(chainInfo.chainId);
-  
-      
       const timeoutHeight: Height = {
         revisionNumber: "0",
         revisionHeight: "0",
@@ -95,7 +90,7 @@ function App() {
       const timeoutTimestamp = (Math.floor(Date.now() / 1000) + 600) * (1000000000); // 10 minutes from now, in nanoseconds
 
       const token: Coin = {
-        denom: denom,
+        denom,
         amount: "1"
       };
 
@@ -120,7 +115,7 @@ function App() {
           chainInfo,
           key.bech32Address,
           [protoMsg],
-          [{ denom: chainInfo.feeCurrencies[0].coinMinimalDenom, amount: token.amount }]
+          [{ denom: feeDenom, amount: token.amount }]
         );
 
         if (gasUsed) {
@@ -130,7 +125,7 @@ function App() {
             key.bech32Address,
             [protoMsg],
             {
-              amount: [{ denom: chainInfo.feeCurrencies[0].coinMinimalDenom, amount: token.amount }],
+              amount: [{ denom: feeDenom, amount: token.amount }],
               gas: Math.floor(gasUsed * 1.5).toString(),
             }
           );
@@ -163,7 +158,7 @@ function App() {
               </select>
               {address ? (
                 <>
-                <div>{address}</div>
+                <div>Address: {address}</div>
                   <InputField 
                     label="Recipient"
                     value={recipient}

@@ -4653,6 +4653,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"bech32@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "bech32@npm:2.0.0"
+  checksum: fa15acb270b59aa496734a01f9155677b478987b773bf701f465858bf1606c6a970085babd43d71ce61895f1baa594cb41a2cd1394bd2c6698f03cc2d811300e
+  languageName: node
+  linkType: hard
+
 "bfj@npm:^7.0.2":
   version: 7.0.2
   resolution: "bfj@npm:7.0.2"
@@ -9549,6 +9556,7 @@ __metadata:
     "@types/node": ^16.18.48
     "@types/react": ^18.2.21
     "@types/react-dom": ^18.2.7
+    bech32: ^2.0.0
     buffer: ^6.0.3
     chain-registry: 1.63.57
     crypto-browserify: ^3.12.0

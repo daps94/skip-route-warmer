@@ -29,7 +29,6 @@ export const useChainInfo = (sourceChainId: string) => {
   return chainInfo;
 };
 
-// Custom hook for managing Keplr address
 export const useKeplrAddress = (chainInfo: ChainInfo | null) => {
   const [address, setAddress] = useState("");
 
@@ -49,7 +48,6 @@ export const useKeplrAddress = (chainInfo: ChainInfo | null) => {
   return { address, getKeyFromKeplr };
 };
 
-// Custom hook for fetching channel recommendation
 export const useChannelRecommendation = (sourceChainId: string, feeDenom: string, recipient: string) => {
   const [sourceChannel, setSourceChannel] = useState("");
 

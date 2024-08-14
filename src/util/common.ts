@@ -4,7 +4,6 @@ import { api } from "./api";
 import { AccountResponse } from "../types/account";
 import { bech32 } from "bech32"
 
-
 export const getChainIdFromAddress = (address: string) => {
     const prefix = address.split('1')[0];
     const chain = chains.find((chain) =>  chain.bech32_prefix === prefix );

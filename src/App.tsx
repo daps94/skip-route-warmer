@@ -15,7 +15,7 @@ import "./styles/item.css";
 function App() {
   const [denom, setDenom] = useState("");
   const [recipient, setRecipient] = useState("");
-  const [sourceChainId, setSourceChainId] = useState("osmosis-1");
+  const [sourceChainId, setSourceChainId] = useState("noble-1");
   const [loading, setLoading] = useState(false);
 
   const chainInfo = useChainInfo(sourceChainId);
@@ -25,9 +25,7 @@ function App() {
   const { sourceChannel, setSourceChannel } = useChannelRecommendation(sourceChainId, feeDenom, recipient);
 
   useEffect(() => {
-    if (balances.length === 1) {
-      setDenom(balances[0].denom);
-    }
+    setDenom(balances[0]?.denom);
   }, [balances]);
 
   const transfer = async () => {
@@ -48,7 +46,6 @@ function App() {
         timeoutTimestamp: timeoutTimestamp.toString(),
         memo: "",
       };
-
       const protoMsg = {
         typeUrl: "/ibc.applications.transfer.v1.MsgTransfer",
         value: MsgTransfer.encode(msg).finish(),
@@ -56,10 +53,10 @@ function App() {
 
       try {
         const gasUsed = await simulateMsgs(chainInfo, key.bech32Address, [protoMsg], 
-          [{ denom: feeDenom, amount: token.amount }]);
+          [{ denom: feeDenom, amount: "1000" }]);
         if (gasUsed) {
           await sendMsgs(window.keplr, chainInfo, key.bech32Address, [protoMsg], {
-            amount: [{ denom: feeDenom, amount: token.amount }],
+            amount: [{ denom: feeDenom, amount: "1000" }],
             gas: Math.floor(gasUsed * 1.5).toString(),
           });
         }
@@ -73,7 +70,6 @@ function App() {
   };
 
   const submitDisabled = loading || !denom || !sourceChannel.startsWith("channel-") || !recipient;
-  console.log('first', { loading, denom, sourceChannel, recipient })
 
   return (
     <div className="root-container">

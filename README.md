@@ -1,7 +1,6 @@
 The Skip Route Warmer allows developers to send newly launched tokens over a specific IBC route. This initial transfer *warms* the route, enabling the Skip Go API to recommend the correct route for subsequent transfers of that token. This helps avoid user confusion and liquidity issues.
 
-
-<img src="/public/ui.png" alt="Route Warmer" width="500" height="400">
+![Warmer](./public/ui.png)
 
 See Live Deployment: [Route Warmer](https://enchanting-pothos-10882b.netlify.app)
 

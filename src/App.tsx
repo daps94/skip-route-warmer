@@ -75,17 +75,17 @@ function App() {
           <div className="item-title">IBC Route Warmer</div>
           <div className="item-content">
             <CustomSelect 
-            label="Source Chain"
+              label="Source Chain"
               options={chains
               // @ts-ignore
                 .filter((chain) => chain?.chain_type === "cosmos" && chain?.network_type === "mainnet")
                 .map((chain) => ({ value: chain.chain_id, label: chain.chain_name }))}
               value={sourceChainId}
-              onChange={(e) => setSourceChainId(e.target.value)}
+              onChange={(e) =>  setSourceChainId(e.target.value)}
             />
-
             {address ? (
               <>
+              <InputField name="address" label="Your Connected Address" value={address} disabled />
                 <CustomSelect 
                   label="Denom"
                   options={balances.map((balance) => ({ value: balance.denom, label: balance.amount }))}

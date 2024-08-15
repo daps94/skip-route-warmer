@@ -27,8 +27,7 @@ const CustomSelect = ({ options, value, onChange, label, placeholder } : CustomS
           list={label}
           value={inputValue}
           onChange={handleChange}
-          disabled={options.length === 0}
-          placeholder={options.length > 0 ? placeholder : "No options found"}
+          placeholder={options.length > 0 ? placeholder : "No denoms found"}
           style={{ padding: "8px", borderRadius: "4px" }}
         />
         {options.length > 0 && (

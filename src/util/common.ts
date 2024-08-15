@@ -33,6 +33,28 @@ export const validateRestApi = async (chain: Chain) => {
   return null;
 };
 
+export const validateRpcApi = async (chain: Chain) => {
+  if (!chain.apis?.rpc) return null;
+
+  if (API_OVERRIDE[chain.chain_id]) {
+    return API_OVERRIDE[chain.chain_id].rpc;
+  }
+
+  for (const { address } of chain.apis.rpc) {
+    try {
+      const uri = `${address}/status`;
+      const res = await api(uri);
+      console.log('res', res)
+      if (res) return address;
+    } catch (e) {
+      console.error(`RPC endpoint ${address} is not valid.`);
+    }
+  }
+
+  alert('No valid RPC endpoints found for this chain.');
+  return null;
+};
+
 export function randomAddress(prefix: string) {
   const RANDOM_WORDS = [...Array(64)]
     .map(() => Math.random().toString(16).slice(-1))

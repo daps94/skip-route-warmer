@@ -1,7 +1,7 @@
 interface InputFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label: string;
     value: string;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
     name: string;
     placeholder?: string;
     disabled?: boolean;

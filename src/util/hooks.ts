@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { chains, assets } from "chain-registry";
 import { chainRegistryChainToKeplr } from "@chain-registry/keplr";
 import { ChainInfo } from "@keplr-wallet/types";
-import { validateRestApi, getChainIdFromAddress } from "./common";
+import { validateRestApi, getChainIdFromAddress, validateRpcApi } from "./common";
 import { fetchChannelRecommendation } from "./skip";
 import { Coin } from "@cosmjs/stargate";
 import { api } from "./api";
@@ -15,10 +15,11 @@ export const useChainInfo = (sourceChainId: string) => {
     if (!selectedChain) return;
 
     const configureChainInfo = async () => {
-      const restEndpoint = await validateRestApi(selectedChain);
-      if (!restEndpoint) return;
+      const [rest, rpc] = await Promise.all([validateRestApi(selectedChain), validateRpcApi(selectedChain)]);
+      if (!rest || !rpc) return;
       const config: ChainInfo = chainRegistryChainToKeplr(selectedChain, assets, {
-        getRestEndpoint: () => restEndpoint,
+        getRestEndpoint: () => rest,
+        getRpcEndpoint: () => rpc 
       });
       setChainInfo(config);
     };

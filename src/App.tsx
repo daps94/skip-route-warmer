@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import Button from "./components/Button";
 import InputField from "./components/InputField";
 import { chains } from "chain-registry";
@@ -83,36 +83,20 @@ function App() {
               value={sourceChainId}
               onChange={(e) => setSourceChainId(e.target.value)}
             />
-            {/* <select value={sourceChainId} onChange={(e) => setSourceChainId(e.target.value)}>
-              {chains
-              // @ts-ignore
-                .filter((chain) => chain?.chain_type === "cosmos" && chain?.network_type === "mainnet")
-                .map((chain) => (
-                  <option key={chain.chain_id} value={chain.chain_id}>
-                    {chain.chain_name}
-                  </option>
-                ))}
-            </select> */}
+
             {address ? (
               <>
-               {/* Denom
-                <select value={denom} onChange={(e) => setDenom(e.target.value)}>
-                  {balances.map((balance) => (
-                    <option key={balance.denom} value={balance.denom}>
-                      {balance.denom}
-                    </option>
-                  ))}
-                </select> */}
                 <CustomSelect 
                   label="Denom"
                   options={balances.map((balance) => ({ value: balance.denom, label: balance.amount }))}
                   value={denom}
-                  placeholder="select the native token to warm the route"
+                  placeholder="select the token whose route you want to warm"
                   onChange={(e) => setDenom(e.target.value)}
                 />
-                <InputField label="Recipient" value={recipient} onChange={(e) => setRecipient(e.target.value)} />
+                <InputField name="recipient" label="Recipient" value={recipient} onChange={(e) => setRecipient(e.target.value)} />
                 <InputField
                   label="Source Channel"
+                  name="sourceChannel"
                   value={sourceChannel}
                   placeholder="channel-0"
                   onChange={(e) => setSourceChannel(e.target.value)}

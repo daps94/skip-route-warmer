@@ -80,12 +80,11 @@ export const useBalances = (
   
     useEffect(() => {
       const fetchBalances = async () => {
-          if (!chainInfo || !address) return;
+        if (!chainInfo || !address) return;
         try {
           const response = await api<{ balances: Coin[] }>(
             `${chainInfo.rest}/cosmos/bank/v1beta1/balances/${address}`
           );
-          console.log('response', response)
           setBalances(response.balances);
         } catch (error) {
           console.error("Failed to fetch balances:", error);

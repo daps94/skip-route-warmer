@@ -1,13 +1,12 @@
 import { api } from "./api";
 import { chains } from "chain-registry";
+import { SKIP_BASE_API } from "./constants";
 
 type Props = {
     sourceDenom: string;
     sourceChainId: string;
     destChainId: string
 }
-
-const SKIP_BASE_API = 'https://api.skip.build/v2';
 
 export const fetchChannelRecommendation = async (
   { sourceChainId, destChainId }

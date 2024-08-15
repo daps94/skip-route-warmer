@@ -7,3 +7,4 @@ export const API_OVERRIDE: { [key: string]: {
       rpc: "https://rpc-neutron.whispernode.com"
     } 
   }
+export const SKIP_BASE_API = 'https://api.skip.build/v2';

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
-
-
-const CustomSelect = ({ options, value, onChange, label, placeholder }: 
-    { options: { value: string, label: string }[], label: string, 
-    placeholder?: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }
-) => {
+interface CustomSelectProps {
+    options: { value: string, label: string }[];
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    label: string;
+    placeholder?: string;
+}
+const CustomSelect = ({ options, value, onChange, label, placeholder } : CustomSelectProps) => {
     const [inputValue, setInputValue] = useState(value);
 
-  
     useEffect(() => {
       setInputValue(value);
     }, [value]);

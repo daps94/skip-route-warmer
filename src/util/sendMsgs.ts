@@ -79,6 +79,7 @@ export const sendMsgs = async (
 
     const txHash = await broadcastTxSync(keplr, chainInfo.chainId, signedTx.tx);
     const rpc = API_OVERRIDE[chainInfo.chainId]?.rpc ?? chainInfo.rpc;
+    
     const txTracer = new TendermintTxTracer(rpc, "/websocket");
     txTracer.traceTx(txHash).then((tx) => {
       alert("Transaction hash: " + Buffer.from(txHash).toString('hex'));

@@ -8,6 +8,7 @@ import { Any } from "@keplr-wallet/proto-types/google/protobuf/any";
 import Long from "long";
 import { Buffer } from "buffer";
 import { TendermintTxTracer } from "@keplr-wallet/cosmos";
+import { API_OVERRIDE } from "./constants";
 
 export const sendMsgs = async (
   keplr:Keplr,
@@ -77,7 +78,8 @@ export const sendMsgs = async (
     }
 
     const txHash = await broadcastTxSync(keplr, chainInfo.chainId, signedTx.tx);
-    const txTracer = new TendermintTxTracer(chainInfo.rpc, "/websocket");
+    const rpc = API_OVERRIDE[chainInfo.chainId]?.rpc ?? chainInfo.rpc;
+    const txTracer = new TendermintTxTracer(rpc, "/websocket");
     txTracer.traceTx(txHash).then((tx) => {
       alert("Transaction hash: " + Buffer.from(txHash).toString('hex'));
     });

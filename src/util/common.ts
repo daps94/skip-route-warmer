@@ -3,6 +3,7 @@ import { Chain } from "@chain-registry/types";
 import { api } from "./api";
 import { AccountResponse } from "../types/account";
 import { bech32 } from "bech32"
+import { API_OVERRIDE } from "./constants";
 
 export const getChainIdFromAddress = (address: string) => {
     const prefix = address.split('1')[0];
@@ -12,6 +13,10 @@ export const getChainIdFromAddress = (address: string) => {
 
 export const validateRestApi = async (chain: Chain) => {
   if (!chain.apis?.rest) return null;
+
+  if (API_OVERRIDE[chain.chain_id]) {
+    return API_OVERRIDE[chain.chain_id].rest;
+  }
 
   for (const { address } of chain.apis.rest) {
     try {

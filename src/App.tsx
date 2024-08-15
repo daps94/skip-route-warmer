@@ -11,6 +11,7 @@ import { Height } from "@keplr-wallet/proto-types/ibc/core/client/v1/client";
 import "./styles/container.css";
 import "./styles/button.css";
 import "./styles/item.css";
+import CustomSelect from "./components/CustomSelect";
 
 function App() {
   const [denom, setDenom] = useState("");
@@ -23,10 +24,6 @@ function App() {
   const { balances } = useBalances(chainInfo, address);
   const feeDenom = useMemo(() => chainInfo?.feeCurrencies?.[0].coinMinimalDenom ?? "", [chainInfo]);
   const { sourceChannel, setSourceChannel } = useChannelRecommendation(sourceChainId, feeDenom, recipient);
-
-  useEffect(() => {
-    setDenom(balances[0]?.denom);
-  }, [balances]);
 
   const transfer = async () => {
     if (window.keplr && chainInfo) {
@@ -77,8 +74,16 @@ function App() {
         <div className="item">
           <div className="item-title">IBC Route Warmer</div>
           <div className="item-content">
-            Source Chain
-            <select value={sourceChainId} onChange={(e) => setSourceChainId(e.target.value)}>
+            <CustomSelect 
+            label="Source Chain"
+              options={chains
+              // @ts-ignore
+                .filter((chain) => chain?.chain_type === "cosmos" && chain?.network_type === "mainnet")
+                .map((chain) => ({ value: chain.chain_id, label: chain.chain_name }))}
+              value={sourceChainId}
+              onChange={(e) => setSourceChainId(e.target.value)}
+            />
+            {/* <select value={sourceChainId} onChange={(e) => setSourceChainId(e.target.value)}>
               {chains
               // @ts-ignore
                 .filter((chain) => chain?.chain_type === "cosmos" && chain?.network_type === "mainnet")
@@ -87,17 +92,24 @@ function App() {
                     {chain.chain_name}
                   </option>
                 ))}
-            </select>
+            </select> */}
             {address ? (
               <>
-               Denom
+               {/* Denom
                 <select value={denom} onChange={(e) => setDenom(e.target.value)}>
                   {balances.map((balance) => (
                     <option key={balance.denom} value={balance.denom}>
                       {balance.denom}
                     </option>
                   ))}
-                </select>
+                </select> */}
+                <CustomSelect 
+                  label="Denom"
+                  options={balances.map((balance) => ({ value: balance.denom, label: balance.amount }))}
+                  value={denom}
+                  placeholder="select the native token to warm the route"
+                  onChange={(e) => setDenom(e.target.value)}
+                />
                 <InputField label="Recipient" value={recipient} onChange={(e) => setRecipient(e.target.value)} />
                 <InputField
                   label="Source Channel"

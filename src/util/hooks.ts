@@ -85,6 +85,7 @@ export const useBalances = (
           const response = await api<{ balances: Coin[] }>(
             `${chainInfo.rest}/cosmos/bank/v1beta1/balances/${address}`
           );
+          console.log('response', response)
           setBalances(response.balances);
         } catch (error) {
           console.error("Failed to fetch balances:", error);

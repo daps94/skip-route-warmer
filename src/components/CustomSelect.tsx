@@ -13,9 +13,7 @@ const CustomSelect = ({ options, value, onChange, label, placeholder } : CustomS
       setInputValue(value);
     }, [value]);
   
-    const handleChange = (e: 
-        React.ChangeEvent<HTMLInputElement>
-    ) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       setInputValue(e.target.value);
       onChange(e);
     };

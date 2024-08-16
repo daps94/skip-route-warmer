@@ -16,7 +16,8 @@ export const sendMsgs = async (
   sender: string,
   proto: Any[],
   fee: StdFee,
-  memo: string = ""
+  onSuccess?: (txHash: string) => void,
+  memo: string = "",
 ) => {
   const account = await fetchAccountInfo(chainInfo, sender);
   const { pubKey } = await keplr.getKey(chainInfo.chainId);
@@ -82,7 +83,8 @@ export const sendMsgs = async (
     
     const txTracer = new TendermintTxTracer(rpc, "/websocket");
     txTracer.traceTx(txHash).then((tx) => {
-      alert("Transaction hash: " + Buffer.from(txHash).toString('hex'));
+      const hash = Buffer.from(txHash).toString('hex')
+      onSuccess?.(hash);
     });
 
   }

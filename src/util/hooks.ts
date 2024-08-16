@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { chains, assets } from "chain-registry";
 import { chainRegistryChainToKeplr } from "@chain-registry/keplr";
 import { ChainInfo } from "@keplr-wallet/types";
-import { validateRestApi, getChainIdFromAddress, validateRpcApi } from "./common";
+import { validateApiEndpoints, getChainIdFromAddress } from "./common";
 import { fetchChannelRecommendation } from "./skip";
 import { Coin } from "@cosmjs/stargate";
 import { api } from "./api";
@@ -15,11 +15,11 @@ export const useChainInfo = (sourceChainId: string) => {
     if (!selectedChain) return;
 
     const configureChainInfo = async () => {
-      const [rest, rpc] = await Promise.all([validateRestApi(selectedChain), validateRpcApi(selectedChain)]);
+      const { rest, rpc } = await validateApiEndpoints(selectedChain);
       if (!rest || !rpc) return;
       const config: ChainInfo = chainRegistryChainToKeplr(selectedChain, assets, {
         getRestEndpoint: () => rest,
-        getRpcEndpoint: () => rpc 
+        getRpcEndpoint: () => rpc, 
       });
       setChainInfo(config);
     };
@@ -97,3 +97,16 @@ export const useBalances = (
   
     return { balances };
 };
+
+export const useBlockExplorer = (chainId: string) => {
+  const [explorer, setExplorer] = useState("");
+  const explorerTxPage = chains.find((chain) => chain.chain_id === chainId)?.explorers?.[0].tx_page ?? "";
+
+  useEffect(() => {
+    if (chainId) {
+      setExplorer(explorerTxPage);
+    }
+  }, [explorerTxPage, chainId]);
+
+  return explorer;
+}

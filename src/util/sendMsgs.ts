@@ -101,7 +101,7 @@ export const fetchAccountInfo = async (chainInfo: ChainInfo, address: string) =>
 }
 
 export const broadcastTxSync = async (
-  keplr:Keplr,
+  keplr: Keplr,
   chainId: string,
   tx: Uint8Array,
 ): Promise<Uint8Array> => {

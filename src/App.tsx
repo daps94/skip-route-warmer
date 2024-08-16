@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Coin } from "@cosmjs/stargate";
 import { MsgTransfer } from "@keplr-wallet/proto-types/ibc/applications/transfer/v1/tx";
 import { Height } from "@keplr-wallet/proto-types/ibc/core/client/v1/client";

@@ -4,10 +4,21 @@ interface InputFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 const InputField = ({ label, value, ...rest }: InputFieldProps) => {
-    const { name } = rest;
+    const { name, maxLength } = rest;
+    const showCharCount = maxLength && name === 'memo';
+    
     return (
         <>
-            {label && <label htmlFor={name}>{label}</label>}
+            {label && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label htmlFor={name}>{label}</label>
+                    {showCharCount && (
+                        <span style={{ fontSize: '0.85em', color: '#666' }}>
+                            {value.length}/{maxLength}
+                        </span>
+                    )}
+                </div>
+            )}
             <input
                 type='text'
                 value={value}

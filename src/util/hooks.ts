@@ -15,11 +15,22 @@ export const useChainInfo = (sourceChainId: string) => {
     if (!selectedChain) return;
 
     const configureChainInfo = async () => {
+      // @ts-ignore
       const { rest, rpc } = await validateApiEndpoints(selectedChain);
-      if (!rest || !rpc) return;
+      console.log('Validated endpoints:', { chainId: sourceChainId, rest, rpc });
+      if (!rest || !rpc) {
+        console.error('Missing endpoints for chain:', sourceChainId);
+        return;
+      }
+      // @ts-ignore
       const config: ChainInfo = chainRegistryChainToKeplr(selectedChain, assets, {
         getRestEndpoint: () => rest,
         getRpcEndpoint: () => rpc, 
+      });
+      console.log('Created chainInfo config:', { 
+        chainId: config.chainId, 
+        rest: config.rest,
+        rpc: config.rpc 
       });
       setChainInfo(config);
     };

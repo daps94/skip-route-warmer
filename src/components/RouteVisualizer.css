@@ -1,0 +1,218 @@
+.route-visualizer {
+  background: var(--bg-secondary, #1a1a1a);
+  border: 1px solid var(--border-color, #2a2a2a);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 16px 0;
+}
+
+.route-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.route-header h4 {
+  margin: 0;
+  color: var(--text-primary, #fff);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.route-type {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.route-type.ibc {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+}
+
+.route-type.eureka {
+  background: rgba(168, 85, 247, 0.2);
+  color: #a855f7;
+}
+
+.route-container {
+  padding: 16px;
+  background: var(--bg-tertiary, #0f0f0f);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.route-simple,
+.route-complex {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-width: fit-content;
+}
+
+.route-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  background: var(--bg-secondary, #1a1a1a);
+  border: 2px solid var(--border-color, #2a2a2a);
+  border-radius: 12px;
+  position: relative;
+  min-width: 120px;
+  transition: all 0.3s ease;
+}
+
+.route-node:hover {
+  border-color: var(--primary-color, #6366f1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.chain-icon {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.chain-name {
+  font-weight: 500;
+  color: var(--text-primary, #fff);
+  text-align: center;
+  font-size: 14px;
+}
+
+.node-label {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary-color, #6366f1);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.route-arrow {
+  color: var(--primary-color, #6366f1);
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.route-connector {
+  display: flex;
+  align-items: center;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.route-line {
+  width: 40px;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    var(--primary-color, #6366f1) 0%, 
+    var(--primary-color, #6366f1) 50%,
+    transparent 50%,
+    transparent 100%
+  );
+  background-size: 8px 2px;
+  animation: dash 1s linear infinite;
+}
+
+@keyframes dash {
+  to {
+    background-position: 8px 0;
+  }
+}
+
+.route-fees {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color, #2a2a2a);
+}
+
+.route-fees h5 {
+  margin: 0 0 12px 0;
+  color: var(--text-secondary, #888);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.fee-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fee-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-tertiary, #0f0f0f);
+  border-radius: 6px;
+}
+
+.fee-chain {
+  color: var(--text-secondary, #888);
+  font-size: 14px;
+}
+
+.fee-amount {
+  color: var(--primary-color, #6366f1);
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.route-info {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 6px;
+}
+
+.info-icon {
+  font-size: 16px;
+}
+
+.info-text {
+  color: var(--text-secondary, #888);
+  font-size: 13px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .route-simple,
+  .route-complex {
+    padding: 8px;
+  }
+
+  .route-node {
+    min-width: 100px;
+    padding: 12px;
+  }
+
+  .chain-icon {
+    font-size: 24px;
+  }
+
+  .chain-name {
+    font-size: 12px;
+  }
+}

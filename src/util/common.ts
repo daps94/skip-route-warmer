@@ -1,3 +1,4 @@
+// @ts-ignore
 import { Chain } from "@chain-registry/types";
 import { api } from "./api";
 import { API_OVERRIDE } from "./constants";
@@ -18,19 +19,26 @@ export const validateApiEndpoints = async (chain: Chain): Promise<ApiEndpoints> 
     if (!apis) return null;
 
     const override = API_OVERRIDE[chain.chain_id]?.[type];
-    if (override) return override;
+    if (override) {
+      console.log(`Using override ${type} endpoint for ${chain.chain_id}:`, override);
+      return override;
+    }
 
     const uriSuffix = type === 'rest' 
-        ? `/cosmos/bank/v1beta1/balances/${randomAddress(chain.bech32_prefix)}`
+        ? `/cosmos/bank/v1beta1/balances/${chain.bech32_prefix ? randomAddress(chain.bech32_prefix) : 'cosmos1invalid'}`
         : '/status';
 
     for (const { address } of apis) {
       try {
         const uri = `${address}${uriSuffix}`;
+        console.log(`Testing ${type} endpoint:`, uri);
         const res = await api(uri);
-        if (res) return address;
+        if (res) {
+          console.log(`Valid ${type} endpoint found:`, address);
+          return address;
+        }
       } catch (e) {
-        console.error(`${type} endpoint ${address} is not valid.`);
+        console.error(`${type} endpoint ${address} is not valid:`, e);
       }
     }
 

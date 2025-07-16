@@ -315,6 +315,11 @@
   transition: all 0.2s ease;
 }
 
+.form-input.decimal-warning {
+  border-color: var(--warning);
+  background: rgba(245, 158, 11, 0.05);
+}
+
 .form-input:focus {
   outline: none;
   border-color: var(--primary-color);
@@ -521,6 +526,12 @@
   color: var(--success);
 }
 
+.alert-warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--warning);
+}
+
 .alert-icon {
   font-size: 20px;
   flex-shrink: 0;
@@ -559,6 +570,17 @@
 
 .btn-primary:active:not(:disabled) {
   transform: translateY(0);
+}
+
+.btn-secondary {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  border-color: var(--text-secondary);
 }
 
 .btn-large {
@@ -758,7 +780,47 @@
   font-size: 16px;
 }
 
+
+.route-arrow {
+  color: var(--text-secondary);
+  font-size: 20px;
+}
+
+/* Chain Logos */
+.chain-logo {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: var(--bg-tertiary);
+  padding: 2px;
+}
+
+.dropdown-selected {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.chain-option-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.chain-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
 .chain-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 8px 16px;
   background: rgba(99, 102, 241, 0.1);
   border: 1px solid rgba(99, 102, 241, 0.3);
@@ -767,9 +829,9 @@
   color: var(--primary-color);
 }
 
-.route-arrow {
-  color: var(--text-secondary);
-  font-size: 20px;
+.chain-badge .chain-logo {
+  width: 16px;
+  height: 16px;
 }
 
 /* Scrollbar Styles */

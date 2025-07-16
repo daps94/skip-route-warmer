@@ -4,11 +4,36 @@
 }
 
 .balance-dropdown label {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 8px;
   color: var(--text-secondary, #888);
   font-size: 14px;
   font-weight: 500;
+}
+
+.refresh-button {
+  background: none;
+  border: none;
+  color: var(--primary-color, #6366f1);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.refresh-button:hover {
+  background: rgba(99, 102, 241, 0.1);
+  transform: rotate(180deg);
+}
+
+.refresh-button:active {
+  transform: rotate(180deg) scale(0.9);
 }
 
 .dropdown-trigger {

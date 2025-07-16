@@ -21,9 +21,18 @@ import './RouteWarmer.css';
 interface SkipChain {
   chain_id: string;
   chain_name: string;
-  prefix: string;
   chain_type: string;
   is_testnet: boolean;
+  bech32_prefix: string;
+  logo_uri?: string;
+  fee_assets?: Array<{
+    denom: string;
+    gas_price?: {
+      low: string;
+      average: string;
+      high: string;
+    };
+  }>;
 }
 
 const RouteWarmer: React.FC = () => {
@@ -46,22 +55,133 @@ const RouteWarmer: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [showSourceDropdown, setShowSourceDropdown] = useState<boolean>(false);
   const [showDestDropdown, setShowDestDropdown] = useState<boolean>(false);
-  const [prettyMode, setPrettyMode] = useState<boolean>(false);
+  const [humanReadableMode, setHumanReadableMode] = useState<boolean>(false);
   const [manualDecimals, setManualDecimals] = useState<Record<string, number>>({});
   const [showDecimalSettings, setShowDecimalSettings] = useState<boolean>(false);
   const [decimalInput, setDecimalInput] = useState<string>('');
   const [showTestnets, setShowTestnets] = useState<boolean>(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState<boolean>(() => {
+    return localStorage.getItem('routeWarmerDisclaimerAccepted') === 'true';
+  });
 
   // Hooks - Use Cosmos Hub for Eureka tab
   const effectiveSourceChainId = activeTab === 'eureka' ? 'cosmoshub-4' : sourceChainId;
   const chainInfo = useChainInfo(effectiveSourceChainId);
   const { address, getKeyFromKeplr } = useKeplrAddress(chainInfo);
   
+  // Create chainInfo from Skip data if useChainInfo fails
+  const [skipChainInfo, setSkipChainInfo] = useState<ChainInfo | null>(null);
+  
+  useEffect(() => {
+    const createChainInfoFromSkip = async () => {
+      if (!effectiveSourceChainId || chainInfo?.chainId === effectiveSourceChainId) return;
+      
+      const skipChain = chains.find(c => c.chain_id === effectiveSourceChainId);
+      if (!skipChain) return;
+      
+      try {
+        // Use Skip's RPC endpoint
+        const rpc = `https://go.skip.build/api/rpc/${effectiveSourceChainId}`;
+        // For REST, we'll need to use the rpcClient to get a healthy endpoint
+        const robustChainInfo = await rpcClient.getChainInfoWithFallback({
+          chainId: effectiveSourceChainId,
+          chainName: skipChain.chain_name,
+          rpc: rpc,
+          rest: `https://api.cosmos.directory/${effectiveSourceChainId}`, // fallback
+          bech32Config: {
+            bech32PrefixAccAddr: skipChain.bech32_prefix,
+            bech32PrefixAccPub: `${skipChain.bech32_prefix}pub`,
+            bech32PrefixValAddr: `${skipChain.bech32_prefix}valoper`,
+            bech32PrefixValPub: `${skipChain.bech32_prefix}valoperpub`,
+            bech32PrefixConsAddr: `${skipChain.bech32_prefix}valcons`,
+            bech32PrefixConsPub: `${skipChain.bech32_prefix}valconspub`,
+          },
+          bip44: {
+            coinType: 118, // Default Cosmos coin type
+          },
+          currencies: skipChain.fee_assets?.map((asset: any) => ({
+            coinDenom: asset.denom.toUpperCase(),
+            coinMinimalDenom: asset.denom,
+            coinDecimals: 6,
+            coinGeckoId: '',
+          })) || [{
+            coinDenom: 'ATOM',
+            coinMinimalDenom: 'uatom',
+            coinDecimals: 6,
+            coinGeckoId: 'cosmos',
+          }],
+          feeCurrencies: skipChain.fee_assets?.map((asset: any) => ({
+            coinDenom: asset.denom.toUpperCase(),
+            coinMinimalDenom: asset.denom,
+            coinDecimals: 6,
+            coinGeckoId: '',
+            gasPriceStep: {
+              low: parseFloat(asset.gas_price?.low || '0.01'),
+              average: parseFloat(asset.gas_price?.average || '0.025'),
+              high: parseFloat(asset.gas_price?.high || '0.04'),
+            },
+          })) || [{
+            coinDenom: 'ATOM',
+            coinMinimalDenom: 'uatom',
+            coinDecimals: 6,
+            coinGeckoId: 'cosmos',
+            gasPriceStep: {
+              low: 0.01,
+              average: 0.025,
+              high: 0.04,
+            },
+          }],
+          stakeCurrency: {
+            coinDenom: skipChain.fee_assets?.[0]?.denom.toUpperCase() || 'ATOM',
+            coinMinimalDenom: skipChain.fee_assets?.[0]?.denom || 'uatom',
+            coinDecimals: 6,
+            coinGeckoId: '',
+          },
+        } as ChainInfo);
+        
+        setSkipChainInfo(robustChainInfo);
+        console.log('Created chainInfo from Skip data:', robustChainInfo);
+      } catch (error) {
+        console.error('Failed to create chainInfo from Skip data:', error);
+      }
+    };
+    
+    createChainInfoFromSkip();
+  }, [effectiveSourceChainId, chainInfo, chains]);
+  
+  // Use Skip chainInfo if available, otherwise fall back to registry chainInfo
+  const effectiveChainInfo = (chainInfo?.chainId === effectiveSourceChainId) ? chainInfo : skipChainInfo;
+  
+  // Memoize getKeyFromKeplr to prevent dependency issues
+  const memoizedGetKeyFromKeplr = useCallback(() => {
+    return getKeyFromKeplr();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveChainInfo]);
+  
+  // Auto-connect to Keplr when chain info changes
+  useEffect(() => {
+    const autoConnect = async () => {
+      if (effectiveChainInfo && !address) {
+        try {
+          // Check if Keplr is already connected
+          const key = await window.keplr?.getKey(effectiveChainInfo.chainId);
+          if (key) {
+            await memoizedGetKeyFromKeplr();
+          }
+        } catch (error) {
+          console.log('Auto-connect skipped:', error);
+        }
+      }
+    };
+    
+    autoConnect();
+  }, [effectiveChainInfo, address, memoizedGetKeyFromKeplr]);
+  
   // Token metadata hook
   const { metadata: tokenMetadata } = useTokenMetadata(denom, chainInfo);
   
   // Helper function to get token info with metadata fallback
-  const getTokenInfoWithMetadata = (denom: string, fallbackChainInfo: ChainInfo | null = chainInfo) => {
+  const getTokenInfoWithMetadata = (denom: string, fallbackChainInfo: ChainInfo | null = effectiveChainInfo) => {
     // Check if we have a manual decimal override for this denom
     if (manualDecimals[denom] !== undefined) {
       // Get the symbol from metadata or fallback
@@ -197,8 +317,8 @@ const RouteWarmer: React.FC = () => {
     } else {
       // Cosmos address validation for IBC
       const destChain = chains.find(c => c.chain_id === destinationChainId);
-      if (destChain && destChain.prefix && !recipient.startsWith(destChain.prefix)) {
-        return `Recipient address should start with "${destChain.prefix}"`;
+      if (destChain && destChain.bech32_prefix && !recipient.startsWith(destChain.bech32_prefix)) {
+        return `Recipient address should start with "${destChain.bech32_prefix}"`;
       }
     }
     
@@ -213,7 +333,7 @@ const RouteWarmer: React.FC = () => {
       return;
     }
 
-    if (!window.keplr || !chainInfo) {
+    if (!window.keplr || !effectiveChainInfo) {
       setError('Please connect your wallet first');
       return;
     }
@@ -224,7 +344,7 @@ const RouteWarmer: React.FC = () => {
 
     try {
       // Get chain info with fallback RPC
-      const robustChainInfo = await rpcClient.getChainInfoWithFallback(chainInfo);
+      const robustChainInfo = await rpcClient.getChainInfoWithFallback(effectiveChainInfo);
       const key = await window.keplr.getKey(robustChainInfo.chainId);
       const feeDenom = robustChainInfo.feeCurrencies?.[0].coinMinimalDenom || denom;
       
@@ -234,7 +354,7 @@ const RouteWarmer: React.FC = () => {
         // For Eureka, use MsgExecuteContract
         // Get token info - use metadata if available, otherwise fall back to chain info
         const tokenInfo = tokenMetadata || getTokenInfo(denom, robustChainInfo);
-        const amountInSmallestUnit = prettyMode 
+        const amountInSmallestUnit = humanReadableMode 
           ? convertToSmallestUnit(amount, tokenInfo.decimals)
           : amount;
         
@@ -254,7 +374,7 @@ const RouteWarmer: React.FC = () => {
         
         // Convert amount to smallest unit
         const tokenInfo = tokenMetadata || getTokenInfo(denom, robustChainInfo);
-        const amountInSmallestUnit = prettyMode 
+        const amountInSmallestUnit = humanReadableMode 
           ? convertToSmallestUnit(amount, tokenInfo.decimals)
           : amount;
         
@@ -290,11 +410,14 @@ const RouteWarmer: React.FC = () => {
         setStatus('Broadcasting transaction...');
         
         // For route warming, use the same denom as the token being sent
-        // Convert manual fee to smallest unit if in pretty mode
+        // Convert manual fee to smallest unit if in human-readable mode
         const tokenInfo = getTokenInfoWithMetadata(denom, robustChainInfo);
-        const feeInSmallestUnit = prettyMode && manualFee !== '0'
-          ? convertToSmallestUnit(manualFee, tokenInfo.decimals)
-          : manualFee;
+        // For Eureka, always use 0 fee
+        const feeInSmallestUnit = activeTab === 'eureka' ? '0' : (
+          humanReadableMode && manualFee !== '0'
+            ? convertToSmallestUnit(manualFee, tokenInfo.decimals)
+            : manualFee
+        );
         
         await sendMsgs(
           window.keplr,
@@ -318,7 +441,7 @@ const RouteWarmer: React.FC = () => {
 
             // Store the display amount
             const tokenInfo = getTokenInfoWithMetadata(denom, robustChainInfo);
-            const displayAmount = prettyMode ? amount : formatDisplayAmount(amount, tokenInfo.decimals, true);
+            const displayAmount = humanReadableMode ? amount : formatDisplayAmount(amount, tokenInfo.decimals, true);
             
             const newTx: Transaction = {
               hash,
@@ -380,13 +503,13 @@ const RouteWarmer: React.FC = () => {
         <label className="toggle-label">
           <input
             type="checkbox"
-            checked={prettyMode}
-            onChange={(e) => setPrettyMode(e.target.checked)}
+            checked={humanReadableMode}
+            onChange={(e) => setHumanReadableMode(e.target.checked)}
             className="toggle-input"
           />
           <span className="toggle-switch"></span>
           <span className="toggle-text">
-            {prettyMode ? 'Pretty Display' : 'Raw Amounts'}
+            {humanReadableMode ? 'Human-readable amounts' : 'Raw amounts'}
           </span>
         </label>
         <label className="toggle-label">
@@ -400,6 +523,7 @@ const RouteWarmer: React.FC = () => {
               setDestinationChainId('');
               setDenom('');
               setChannel('');
+              setAmount('');
             }}
             className="toggle-input"
           />
@@ -453,10 +577,26 @@ const RouteWarmer: React.FC = () => {
                           setSourceChainId(chain.chain_id);
                           setShowSourceDropdown(false);
                           setSearchTerm('');
+                          // Clear denom when changing source chain
+                          setDenom('');
                         }}
                       >
-                        <span className="chain-name">{chain.chain_name}</span>
-                        <span className="chain-id">{chain.chain_id}</span>
+                        <div className="chain-option-content">
+                          {chain.logo_uri && (
+                            <img 
+                              src={chain.logo_uri} 
+                              alt={chain.chain_name}
+                              className="chain-logo"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          )}
+                          <div className="chain-details">
+                            <span className="chain-name">{chain.chain_name}</span>
+                            <span className="chain-id">{chain.chain_id}</span>
+                          </div>
+                        </div>
                       </div>
                     ))}
                 </div>
@@ -475,10 +615,30 @@ const RouteWarmer: React.FC = () => {
                 setShowDestDropdown(!showDestDropdown);
               }}
             >
-              {destinationChainId ? 
-                chains.find(c => c.chain_id === destinationChainId)?.chain_name || destinationChainId 
-                : 'Select destination chain'
-              }
+              {destinationChainId ? (
+                <div className="dropdown-selected">
+                  {(() => {
+                    const chain = chains.find(c => c.chain_id === destinationChainId);
+                    return (
+                      <>
+                        {chain?.logo_uri && (
+                          <img 
+                            src={chain.logo_uri} 
+                            alt={chain.chain_name}
+                            className="chain-logo"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        )}
+                        <span>{chain?.chain_name || destinationChainId}</span>
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : (
+                'Select destination chain'
+              )}
               <span className="arrow">▼</span>
             </div>
             {showDestDropdown && (
@@ -510,8 +670,22 @@ const RouteWarmer: React.FC = () => {
                           setSearchTerm('');
                         }}
                       >
-                        <span className="chain-name">{chain.chain_name}</span>
-                        <span className="chain-id">{chain.chain_id}</span>
+                        <div className="chain-option-content">
+                          {chain.logo_uri && (
+                            <img 
+                              src={chain.logo_uri} 
+                              alt={chain.chain_name}
+                              className="chain-logo"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          )}
+                          <div className="chain-details">
+                            <span className="chain-name">{chain.chain_name}</span>
+                            <span className="chain-id">{chain.chain_id}</span>
+                          </div>
+                        </div>
                       </div>
                     ))}
                 </div>
@@ -521,13 +695,14 @@ const RouteWarmer: React.FC = () => {
         </div>
 
         {/* Token Selection */}
-        {address && chainInfo && (
+        {address && effectiveChainInfo && (
           <BalanceDropdown
-            chainInfo={chainInfo}
+            key={`${effectiveChainInfo.chainId}-${address}`} // Force remount on chain change
+            chainInfo={effectiveChainInfo}
             address={address}
             selectedDenom={denom}
             onDenomSelect={setDenom}
-            prettyMode={prettyMode}
+            humanReadableMode={humanReadableMode}
             manualDecimals={manualDecimals}
           />
         )}
@@ -540,7 +715,7 @@ const RouteWarmer: React.FC = () => {
             className="form-input"
             value={recipient}
             onChange={(e) => setRecipient(e.target.value)}
-            placeholder={`${chains.find(c => c.chain_id === destinationChainId)?.prefix || 'cosmos'}...`}
+            placeholder={`${chains.find(c => c.chain_id === destinationChainId)?.bech32_prefix || 'cosmos'}...`}
           />
         </div>
 
@@ -551,20 +726,25 @@ const RouteWarmer: React.FC = () => {
             {denom && (
               <span className="amount-hint">
                 {(() => {
-                  const tokenInfo = getTokenInfoWithMetadata(denom, chainInfo);
-                  if (prettyMode) {
+                  const tokenInfo = getTokenInfoWithMetadata(denom, effectiveChainInfo);
+                  if (humanReadableMode) {
                     return `(in ${tokenInfo.symbol}, using ${tokenInfo.decimals} decimals)`;
                   } else {
                     return `(in ${tokenInfo.symbol} smallest unit)`;
                   }
                 })()}
-                {prettyMode && (
+                {humanReadableMode && (
                   <button
                     className="decimal-settings-btn"
                     onClick={(e) => {
                       e.preventDefault();
                       setShowDecimalSettings(true);
-                      setDecimalInput(manualDecimals[denom]?.toString() || getTokenInfoWithMetadata(denom, chainInfo).decimals.toString());
+                      // Use actual decimals from metadata if available, otherwise use current value
+                      const actualDecimals = manualDecimals[denom] || 
+                        (tokenMetadata && tokenMetadata.denom === denom ? tokenMetadata.decimals : 
+                        effectiveChainInfo?.currencies.find(c => c.coinMinimalDenom === denom)?.coinDecimals || 
+                        6);
+                      setDecimalInput(actualDecimals.toString());
                     }}
                     title="Adjust decimals"
                   >
@@ -584,13 +764,29 @@ const RouteWarmer: React.FC = () => {
                 setAmount(val);
               }
             }}
-            placeholder={prettyMode ? "0.0 (e.g., 1.5)" : "0"}
+            placeholder={humanReadableMode ? "0.0 (e.g., 1.5)" : "0 (smallest unit)"}
           />
+          {/* Decimal Warning */}
+          {humanReadableMode && denom && (() => {
+            const tokenInfo = getTokenInfoWithMetadata(denom, effectiveChainInfo);
+            return (
+              <div className="alert alert-warning" style={{ marginTop: '8px', marginBottom: '16px' }}>
+                <span className="alert-icon">⚠️</span>
+                <div>
+                  <strong>Human-readable Mode - Please Verify Decimals</strong>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '14px' }}>
+                    Currently using <strong>{tokenInfo.decimals} decimals</strong> for {tokenInfo.symbol}. 
+                    Please verify this is correct using the ⚙️ button above to ensure you send the intended amount.
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
           {amount && denom && (
             <div className="amount-conversion">
               {(() => {
-                const tokenInfo = getTokenInfoWithMetadata(denom, chainInfo);
-                if (prettyMode) {
+                const tokenInfo = getTokenInfoWithMetadata(denom, effectiveChainInfo);
+                if (humanReadableMode) {
                   const rawAmount = convertToSmallestUnit(amount, tokenInfo.decimals);
                   return `= ${rawAmount} ${tokenInfo.symbol} (raw)`;
                 } else {
@@ -622,11 +818,11 @@ const RouteWarmer: React.FC = () => {
         <div className="form-group">
           <label>
             Fee Amount (Route Warming)
-            {denom && chainInfo && (
+            {denom && effectiveChainInfo && (
               <span className="amount-hint">
                 {(() => {
-                  const tokenInfo = getTokenInfoWithMetadata(denom, chainInfo);
-                  if (prettyMode) {
+                  const tokenInfo = getTokenInfoWithMetadata(denom, effectiveChainInfo);
+                  if (humanReadableMode) {
                     return `(in ${tokenInfo.symbol}, using ${tokenInfo.decimals} decimals)`;
                   } else {
                     return `(in ${tokenInfo.symbol} smallest unit)`;
@@ -648,11 +844,11 @@ const RouteWarmer: React.FC = () => {
             placeholder="0"
           />
           <p className="form-hint">Set to 0 for route warming. Fee uses same token as transfer.</p>
-          {manualFee && manualFee !== '0' && denom && chainInfo && (
+          {manualFee && manualFee !== '0' && denom && effectiveChainInfo && (
             <div className="amount-conversion">
               {(() => {
-                const tokenInfo = getTokenInfoWithMetadata(denom, chainInfo);
-                if (prettyMode) {
+                const tokenInfo = getTokenInfoWithMetadata(denom, effectiveChainInfo);
+                if (humanReadableMode) {
                   const rawFee = convertToSmallestUnit(manualFee, tokenInfo.decimals);
                   return `= ${rawFee} ${tokenInfo.symbol} (raw)`;
                 } else {
@@ -669,11 +865,13 @@ const RouteWarmer: React.FC = () => {
           <RouteVisualizer
             sourceChain={{
               chainId: sourceChainId,
-              chainName: chains.find(c => c.chain_id === sourceChainId)?.chain_name || sourceChainId
+              chainName: chains.find(c => c.chain_id === sourceChainId)?.chain_name || sourceChainId,
+              logoUri: chains.find(c => c.chain_id === sourceChainId)?.logo_uri
             }}
             destinationChain={{
               chainId: destinationChainId,
-              chainName: chains.find(c => c.chain_id === destinationChainId)?.chain_name || destinationChainId
+              chainName: chains.find(c => c.chain_id === destinationChainId)?.chain_name || destinationChainId,
+              logoUri: chains.find(c => c.chain_id === destinationChainId)?.logo_uri
             }}
             routeType="ibc"
           />
@@ -689,13 +887,13 @@ const RouteWarmer: React.FC = () => {
         <label className="toggle-label">
           <input
             type="checkbox"
-            checked={prettyMode}
-            onChange={(e) => setPrettyMode(e.target.checked)}
+            checked={humanReadableMode}
+            onChange={(e) => setHumanReadableMode(e.target.checked)}
             className="toggle-input"
           />
           <span className="toggle-switch"></span>
           <span className="toggle-text">
-            {prettyMode ? 'Pretty Display' : 'Raw Amounts'}
+            {humanReadableMode ? 'Human-readable amounts' : 'Raw amounts'}
           </span>
         </label>
       </div>
@@ -717,22 +915,61 @@ const RouteWarmer: React.FC = () => {
           <label>Route</label>
           <div className="fixed-route">
             <div className="route-display">
-              <span className="chain-badge">Cosmos Hub</span>
+              <div className="chain-badge">
+                {(() => {
+                  const cosmosHub = chains.find(c => c.chain_id === 'cosmoshub-4');
+                  return (
+                    <>
+                      {cosmosHub?.logo_uri && (
+                        <img 
+                          src={cosmosHub.logo_uri} 
+                          alt="Cosmos Hub"
+                          className="chain-logo"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <span>Cosmos Hub</span>
+                    </>
+                  );
+                })()}
+              </div>
               <span className="route-arrow">→</span>
-              <span className="chain-badge">Ethereum</span>
+              <div className="chain-badge">
+                {(() => {
+                  const ethereum = chains.find(c => c.chain_id === '1');
+                  return (
+                    <>
+                      {ethereum?.logo_uri && (
+                        <img 
+                          src={ethereum.logo_uri} 
+                          alt="Ethereum"
+                          className="chain-logo"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <span>Ethereum</span>
+                    </>
+                  );
+                })()}
+              </div>
             </div>
           </div>
           <p className="form-hint">Direct transfer from Cosmos Hub to Ethereum via Eureka protocol</p>
         </div>
 
         {/* Token Selection */}
-        {address && chainInfo && (
+        {address && effectiveChainInfo && (
           <BalanceDropdown
-            chainInfo={chainInfo}
+            key={`cosmoshub-4-${address}`} // Force remount on address change
+            chainInfo={effectiveChainInfo}
             address={address}
             selectedDenom={denom}
             onDenomSelect={setDenom}
-            prettyMode={prettyMode}
+            humanReadableMode={humanReadableMode}
             manualDecimals={manualDecimals}
           />
         )}
@@ -756,20 +993,25 @@ const RouteWarmer: React.FC = () => {
             {denom && (
               <span className="amount-hint">
                 {(() => {
-                  const tokenInfo = getTokenInfoWithMetadata(denom, chainInfo);
-                  if (prettyMode) {
+                  const tokenInfo = getTokenInfoWithMetadata(denom, effectiveChainInfo);
+                  if (humanReadableMode) {
                     return `(in ${tokenInfo.symbol}, using ${tokenInfo.decimals} decimals)`;
                   } else {
                     return `(in ${tokenInfo.symbol} smallest unit)`;
                   }
                 })()}
-                {prettyMode && (
+                {humanReadableMode && (
                   <button
                     className="decimal-settings-btn"
                     onClick={(e) => {
                       e.preventDefault();
                       setShowDecimalSettings(true);
-                      setDecimalInput(manualDecimals[denom]?.toString() || getTokenInfoWithMetadata(denom, chainInfo).decimals.toString());
+                      // Use actual decimals from metadata if available, otherwise use current value
+                      const actualDecimals = manualDecimals[denom] || 
+                        (tokenMetadata && tokenMetadata.denom === denom ? tokenMetadata.decimals : 
+                        effectiveChainInfo?.currencies.find(c => c.coinMinimalDenom === denom)?.coinDecimals || 
+                        6);
+                      setDecimalInput(actualDecimals.toString());
                     }}
                     title="Adjust decimals"
                   >
@@ -789,13 +1031,29 @@ const RouteWarmer: React.FC = () => {
                 setAmount(val);
               }
             }}
-            placeholder={prettyMode ? "0.0 (e.g., 1.5)" : "0"}
+            placeholder={humanReadableMode ? "0.0 (e.g., 1.5)" : "0 (smallest unit)"}
           />
+          {/* Decimal Warning */}
+          {humanReadableMode && denom && (() => {
+            const tokenInfo = getTokenInfoWithMetadata(denom, effectiveChainInfo);
+            return (
+              <div className="alert alert-warning" style={{ marginTop: '8px', marginBottom: '16px' }}>
+                <span className="alert-icon">⚠️</span>
+                <div>
+                  <strong>Human-readable Mode - Please Verify Decimals</strong>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '14px' }}>
+                    Currently using <strong>{tokenInfo.decimals} decimals</strong> for {tokenInfo.symbol}. 
+                    Please verify this is correct using the ⚙️ button above to ensure you send the intended amount.
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
           {amount && denom && (
             <div className="amount-conversion">
               {(() => {
-                const tokenInfo = getTokenInfoWithMetadata(denom, chainInfo);
-                if (prettyMode) {
+                const tokenInfo = getTokenInfoWithMetadata(denom, effectiveChainInfo);
+                if (humanReadableMode) {
                   const rawAmount = convertToSmallestUnit(amount, tokenInfo.decimals);
                   return `= ${rawAmount} ${tokenInfo.symbol} (raw)`;
                 } else {
@@ -820,61 +1078,17 @@ const RouteWarmer: React.FC = () => {
           />
         </div>
 
-        {/* Manual Fee Input for Eureka */}
-        <div className="form-group">
-          <label>
-            Fee Amount (Route Warming)
-            {denom && chainInfo && (
-              <span className="amount-hint">
-                {(() => {
-                  const tokenInfo = getTokenInfoWithMetadata(denom, chainInfo);
-                  if (prettyMode) {
-                    return `(in ${tokenInfo.symbol}, using ${tokenInfo.decimals} decimals)`;
-                  } else {
-                    return `(in ${tokenInfo.symbol} smallest unit)`;
-                  }
-                })()}
-              </span>
-            )}
-          </label>
-          <input
-            type="text"
-            className="form-input"
-            value={manualFee}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                setManualFee(val);
-              }
-            }}
-            placeholder="0"
-          />
-          <p className="form-hint">Set to 0 for route warming. Fee uses same token as transfer.</p>
-          {manualFee && manualFee !== '0' && denom && chainInfo && (
-            <div className="amount-conversion">
-              {(() => {
-                const tokenInfo = getTokenInfoWithMetadata(denom, chainInfo);
-                if (prettyMode) {
-                  const rawFee = convertToSmallestUnit(manualFee, tokenInfo.decimals);
-                  return `= ${rawFee} ${tokenInfo.symbol} (raw)`;
-                } else {
-                  const prettyFee = formatDisplayAmount(manualFee, tokenInfo.decimals, true);
-                  return `= ${prettyFee} ${tokenInfo.symbol}`;
-                }
-              })()}
-            </div>
-          )}
-        </div>
-
         {/* Route Visualizer */}
         <RouteVisualizer
           sourceChain={{
             chainId: 'cosmoshub-4',
-            chainName: 'Cosmos Hub'
+            chainName: 'Cosmos Hub',
+            logoUri: chains.find(c => c.chain_id === 'cosmoshub-4')?.logo_uri
           }}
           destinationChain={{
             chainId: '1',
-            chainName: 'Ethereum'
+            chainName: 'Ethereum',
+            logoUri: chains.find(c => c.chain_id === '1')?.logo_uri
           }}
           routeType="eureka"
         />
@@ -897,13 +1111,74 @@ const RouteWarmer: React.FC = () => {
 
   return (
     <div className="route-warmer">
+      {/* Disclaimer Modal */}
+      {!disclaimerAccepted && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '600px' }}>
+            <h2 style={{ marginBottom: '20px', textAlign: 'center' }}>⚠️ Important Notice ⚠️</h2>
+            
+            <div style={{ marginBottom: '20px', lineHeight: '1.6' }}>
+              <p><strong>PLEASE READ CAREFULLY BEFORE USING THIS APPLICATION</strong></p>
+              
+              <p style={{ marginTop: '16px' }}>
+                This is an advanced tool for IBC route warming and cross-chain operations. 
+                By using this application, you acknowledge and agree that:
+              </p>
+              
+              <ul style={{ marginTop: '12px', paddingLeft: '20px' }}>
+                <li style={{ marginBottom: '8px' }}>
+                  This tool executes real blockchain transactions that cannot be reversed
+                </li>
+                <li style={{ marginBottom: '8px' }}>
+                  You must carefully verify all transaction details before signing
+                </li>
+                <li style={{ marginBottom: '8px' }}>
+                  This tool is provided "AS IS" without any warranty of any kind
+                </li>
+                <li style={{ marginBottom: '8px' }}>
+                  You assume all risks associated with using this application
+                </li>
+                <li style={{ marginBottom: '8px' }}>
+                  The developers are not liable for any losses or damages
+                </li>
+              </ul>
+              
+              <p style={{ marginTop: '16px', fontWeight: 'bold' }}>
+                This tool is intended for experienced users who understand blockchain operations 
+                and the associated risks.
+              </p>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => window.close()}
+                style={{ minWidth: '120px' }}
+              >
+                Decline
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  localStorage.setItem('routeWarmerDisclaimerAccepted', 'true');
+                  setDisclaimerAccepted(true);
+                }}
+                style={{ minWidth: '120px' }}
+              >
+                I Understand and Accept
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Decimal Settings Modal */}
       {showDecimalSettings && denom && (
         <div className="modal-overlay" onClick={() => setShowDecimalSettings(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3>Decimal Settings</h3>
             <p className="modal-description">
-              Adjust the decimal places for {getTokenInfoWithMetadata(denom, chainInfo).symbol}
+              Adjust the decimal places for {getTokenInfoWithMetadata(denom, effectiveChainInfo).symbol}
             </p>
             <div className="modal-form">
               <label>Decimal Places:</label>
@@ -1068,6 +1343,37 @@ const RouteWarmer: React.FC = () => {
             )}
           </div>
         )}
+        
+        {/* Footer Disclaimer */}
+        <div style={{ 
+          marginTop: '40px', 
+          padding: '20px',
+          borderTop: '1px solid var(--border-color)',
+          textAlign: 'center',
+          fontSize: '12px',
+          color: 'var(--text-secondary)'
+        }}>
+          <p style={{ margin: '0 0 8px 0' }}>
+            ⚠️ This tool executes real transactions. Always verify details before signing. 
+            Use at your own risk.
+          </p>
+          <button
+            style={{ 
+              background: 'none',
+              border: 'none',
+              color: 'var(--primary-color)',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              fontSize: '12px'
+            }}
+            onClick={() => {
+              localStorage.removeItem('routeWarmerDisclaimerAccepted');
+              setDisclaimerAccepted(false);
+            }}
+          >
+            View Full Disclaimer
+          </button>
+        </div>
       </div>
     </div>
   );

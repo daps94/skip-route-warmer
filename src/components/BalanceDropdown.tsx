@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Coin } from '@cosmjs/stargate';
 import { ChainInfo } from '@keplr-wallet/types';
 import { api } from '../util/api';
@@ -11,7 +11,7 @@ interface BalanceDropdownProps {
   address: string;
   selectedDenom: string;
   onDenomSelect: (denom: string) => void;
-  prettyMode?: boolean;
+  humanReadableMode?: boolean;
   manualDecimals?: Record<string, number>;
 }
 
@@ -28,7 +28,7 @@ const BalanceDropdown: React.FC<BalanceDropdownProps> = ({
   address,
   selectedDenom,
   onDenomSelect,
-  prettyMode = false,
+  humanReadableMode = false,
   manualDecimals = {},
 }) => {
   const [balances, setBalances] = useState<TokenInfo[]>([]);
@@ -37,6 +37,7 @@ const BalanceDropdown: React.FC<BalanceDropdownProps> = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [customDenom, setCustomDenom] = useState('');
   const [queryingCustom, setQueryingCustom] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -62,6 +63,7 @@ const BalanceDropdown: React.FC<BalanceDropdownProps> = ({
   useEffect(() => {
     const fetchBalances = async () => {
       if (!chainInfo || !address) {
+        console.log('Cannot fetch balances - missing chainInfo or address:', { chainInfo: chainInfo?.chainId, address });
         setBalances([]);
         return;
       }
@@ -69,7 +71,8 @@ const BalanceDropdown: React.FC<BalanceDropdownProps> = ({
       console.log('Fetching balances with:', {
         chainId: chainInfo.chainId,
         rest: chainInfo.rest,
-        address
+        address,
+        timestamp: new Date().toISOString()
       });
 
       setLoading(true);
@@ -105,7 +108,7 @@ const BalanceDropdown: React.FC<BalanceDropdownProps> = ({
 
             if (currency) {
               const decimals = manualDecimals[balance.denom] ?? currency.coinDecimals;
-              const displayAmount = prettyMode 
+              const displayAmount = humanReadableMode 
                 ? formatDisplayAmount(balance.amount, decimals, true)
                 : balance.amount;
               return {
@@ -121,7 +124,7 @@ const BalanceDropdown: React.FC<BalanceDropdownProps> = ({
             try {
               const metadata = await getTokenMetadata(balance.denom, chainInfo);
               const decimals = manualDecimals[balance.denom] ?? metadata.decimals;
-              const displayAmount = prettyMode 
+              const displayAmount = humanReadableMode 
                 ? formatDisplayAmount(balance.amount, decimals, true)
                 : balance.amount;
               return {
@@ -138,7 +141,7 @@ const BalanceDropdown: React.FC<BalanceDropdownProps> = ({
               return {
                 denom: balance.denom,
                 amount: balance.amount,
-                displayAmount: prettyMode 
+                displayAmount: humanReadableMode 
                   ? formatDisplayAmount(balance.amount, decimals, true)
                   : balance.amount,
                 symbol: balance.denom,
@@ -173,7 +176,7 @@ const BalanceDropdown: React.FC<BalanceDropdownProps> = ({
     };
 
     fetchBalances();
-  }, [chainInfo, address, prettyMode, manualDecimals]);
+  }, [chainInfo, address, humanReadableMode, manualDecimals, refreshTrigger]);
 
   // Query custom denom balance
   const queryCustomDenom = async () => {
@@ -199,7 +202,7 @@ const BalanceDropdown: React.FC<BalanceDropdownProps> = ({
             amount: response.balance.amount,
             symbol: currency.coinDenom,
             decimals: decimals,
-            displayAmount: prettyMode
+            displayAmount: humanReadableMode
               ? formatDisplayAmount(response.balance.amount, decimals, true)
               : response.balance.amount,
           };
@@ -213,7 +216,7 @@ const BalanceDropdown: React.FC<BalanceDropdownProps> = ({
               amount: response.balance.amount,
               symbol: metadata.symbol,
               decimals: decimals,
-              displayAmount: prettyMode
+              displayAmount: humanReadableMode
                 ? formatDisplayAmount(response.balance.amount, decimals, true)
                 : response.balance.amount,
             };
@@ -225,7 +228,7 @@ const BalanceDropdown: React.FC<BalanceDropdownProps> = ({
               amount: response.balance.amount,
               symbol: response.balance.denom,
               decimals: decimals,
-              displayAmount: prettyMode
+              displayAmount: humanReadableMode
                 ? formatDisplayAmount(response.balance.amount, decimals, true)
                 : response.balance.amount,
             };
@@ -259,9 +262,31 @@ const BalanceDropdown: React.FC<BalanceDropdownProps> = ({
 
   const selectedToken = balances.find(b => b.denom === selectedDenom);
 
+  // Manual refresh function
+  const refreshBalances = useCallback(() => {
+    if (!chainInfo || !address) return;
+    
+    console.log('Manual refresh triggered');
+    setRefreshTrigger(prev => prev + 1);
+  }, [chainInfo, address]);
+
   return (
     <div className="balance-dropdown" ref={dropdownRef}>
-      <label>Token</label>
+      <label>
+        <span>Token</span>
+        {!loading && chainInfo && address && (
+          <button
+            className="refresh-button"
+            onClick={(e) => {
+              e.stopPropagation();
+              refreshBalances();
+            }}
+            title="Refresh balances"
+          >
+            ↻
+          </button>
+        )}
+      </label>
       <div
         className="dropdown-trigger"
         onClick={() => setShowDropdown(!showDropdown)}
@@ -274,7 +299,7 @@ const BalanceDropdown: React.FC<BalanceDropdownProps> = ({
               {selectedToken.symbol || selectedToken.denom}
             </span>
             <span className="token-balance">
-              Balance: {selectedToken.displayAmount} {!prettyMode && selectedToken.symbol}
+              Balance: {selectedToken.displayAmount} {!humanReadableMode && selectedToken.symbol}
             </span>
           </div>
         ) : (
@@ -331,7 +356,7 @@ const BalanceDropdown: React.FC<BalanceDropdownProps> = ({
                   </div>
                   <span className="token-amount">
                     {token.displayAmount}
-                    {!prettyMode && token.symbol && ` ${token.symbol}`}
+                    {!humanReadableMode && token.symbol && ` ${token.symbol}`}
                   </span>
                 </div>
               ))

@@ -1,6 +1,14 @@
 import { ChainInfo } from "@keplr-wallet/types";
 import { API_OVERRIDE } from "./constants";
 
+/**
+ * RPC Client Manager
+ * 
+ * Prioritizes Skip's RPC endpoints (https://go.skip.build/api/rpc/{chain-id})
+ * which are maintained and whitelisted for CORS access.
+ * Falls back to other endpoints if Skip's endpoint is unavailable.
+ */
+
 interface RpcEndpoint {
   url: string;
   priority: number;
@@ -18,10 +26,13 @@ class RpcClientManager {
    * Get available RPC endpoints for a chain
    */
   private getRpcEndpointsForChain(chainId: string): string[] {
-    // Priority order: API_OVERRIDE -> chain-registry -> default
+    // Priority order: Skip RPC -> API_OVERRIDE -> fallbacks
     const endpoints: string[] = [];
 
-    // Add override endpoints first
+    // Add Skip's RPC endpoint first (highest priority)
+    endpoints.push(`https://go.skip.build/api/rpc/${chainId}`);
+
+    // Add override endpoints second
     if (API_OVERRIDE[chainId]) {
       endpoints.push(API_OVERRIDE[chainId].rpc);
     }
@@ -146,17 +157,38 @@ class RpcClientManager {
   /**
    * Check health of an endpoint
    */
-  private async checkEndpointHealth(endpoint: RpcEndpoint): Promise<boolean> {
+  private async checkEndpointHealth(endpoint: RpcEndpoint, chainId?: string): Promise<boolean> {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const response = await fetch(`${endpoint.url}/health`, {
+      // For RPC endpoints, check /status instead of /health
+      const healthPath = endpoint.url.includes('rpc') ? '/status' : '/health';
+      const response = await fetch(`${endpoint.url}${healthPath}`, {
         signal: controller.signal
       });
 
       clearTimeout(timeoutId);
-      return response.ok;
+      
+      if (!response.ok) {
+        return false;
+      }
+
+      // For RPC status endpoint, verify chain ID if provided
+      if (healthPath === '/status' && chainId) {
+        try {
+          const data = await response.json();
+          if (data.result?.node_info?.network !== chainId) {
+            console.log(`Chain ID mismatch for ${endpoint.url}: expected ${chainId}, got ${data.result?.node_info?.network}`);
+            return false;
+          }
+        } catch {
+          // If we can't parse the response, assume it's unhealthy
+          return false;
+        }
+      }
+
+      return true;
     } catch {
       return false;
     }
@@ -186,7 +218,7 @@ class RpcClientManager {
     for (const endpoint of sortedEndpoints) {
       // Check if we need to recheck health
       if (now - endpoint.lastChecked > this.healthCheckInterval) {
-        endpoint.isHealthy = await this.checkEndpointHealth(endpoint);
+        endpoint.isHealthy = await this.checkEndpointHealth(endpoint, chainId);
         endpoint.lastChecked = now;
       }
 
@@ -197,7 +229,7 @@ class RpcClientManager {
 
     // If no healthy endpoints, try to find one that works
     for (const endpoint of sortedEndpoints) {
-      endpoint.isHealthy = await this.checkEndpointHealth(endpoint);
+      endpoint.isHealthy = await this.checkEndpointHealth(endpoint, chainId);
       endpoint.lastChecked = now;
       if (endpoint.isHealthy) {
         return endpoint.url;
@@ -274,17 +306,23 @@ class RpcClientManager {
     const healthyRest = await this.getHealthyEndpoint(chainId, 'rest');
 
     if (!healthyRpc) {
-      throw new Error(`No healthy RPC endpoints for chain ${chainId}`);
+      // If no healthy RPC found, default to Skip's endpoint
+      console.log(`No healthy RPC endpoints found for ${chainId}, using Skip's endpoint`);
+      return {
+        ...chainInfo,
+        rpc: `https://go.skip.build/api/rpc/${chainId}`,
+        rest: healthyRest || chainInfo.rest
+      };
     }
 
     if (!healthyRest) {
-      throw new Error(`No healthy REST endpoints for chain ${chainId}`);
+      console.log(`No healthy REST endpoints found for ${chainId}, using chain default`);
     }
 
     return {
       ...chainInfo,
       rpc: healthyRpc,
-      rest: healthyRest
+      rest: healthyRest || chainInfo.rest
     };
   }
 }

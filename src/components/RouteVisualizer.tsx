@@ -5,15 +5,18 @@ interface RouteVisualizerProps {
   sourceChain: {
     chainId: string;
     chainName: string;
+    logoUri?: string;
   };
   destinationChain?: {
     chainId: string;
     chainName: string;
+    logoUri?: string;
   };
   routeType: 'ibc' | 'eureka';
   intermediateChains?: Array<{
     chainId: string;
     chainName: string;
+    logoUri?: string;
   }>;
 }
 
@@ -43,12 +46,42 @@ const RouteVisualizer: React.FC<RouteVisualizerProps> = ({
       return (
         <div className="route-simple">
           <div className="route-node">
-            <span className="chain-icon">{getChainIcon(sourceChain.chainId)}</span>
+            {sourceChain.logoUri ? (
+              <img 
+                src={sourceChain.logoUri} 
+                alt={sourceChain.chainName}
+                className="chain-logo"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const icon = document.createElement('span');
+                  icon.className = 'chain-icon';
+                  icon.textContent = getChainIcon(sourceChain.chainId);
+                  e.currentTarget.parentElement?.insertBefore(icon, e.currentTarget);
+                }}
+              />
+            ) : (
+              <span className="chain-icon">{getChainIcon(sourceChain.chainId)}</span>
+            )}
             <span className="chain-name">{sourceChain.chainName}</span>
           </div>
           <div className="route-arrow">→</div>
           <div className="route-node">
-            <span className="chain-icon">{getChainIcon(sourceChain.chainId)}</span>
+            {sourceChain.logoUri ? (
+              <img 
+                src={sourceChain.logoUri} 
+                alt={sourceChain.chainName}
+                className="chain-logo"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const icon = document.createElement('span');
+                  icon.className = 'chain-icon';
+                  icon.textContent = getChainIcon(sourceChain.chainId);
+                  e.currentTarget.parentElement?.insertBefore(icon, e.currentTarget);
+                }}
+              />
+            ) : (
+              <span className="chain-icon">{getChainIcon(sourceChain.chainId)}</span>
+            )}
             <span className="chain-name">{sourceChain.chainName}</span>
           </div>
         </div>
@@ -67,7 +100,22 @@ const RouteVisualizer: React.FC<RouteVisualizerProps> = ({
         {allChains.map((chain, index) => (
           <React.Fragment key={`${chain.chainId}-${index}`}>
             <div className="route-node">
-              <span className="chain-icon">{getChainIcon(chain.chainId)}</span>
+              {chain.logoUri ? (
+                <img 
+                  src={chain.logoUri} 
+                  alt={chain.chainName}
+                  className="chain-logo"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const icon = document.createElement('span');
+                    icon.className = 'chain-icon';
+                    icon.textContent = getChainIcon(chain.chainId);
+                    e.currentTarget.parentElement?.insertBefore(icon, e.currentTarget);
+                  }}
+                />
+              ) : (
+                <span className="chain-icon">{getChainIcon(chain.chainId)}</span>
+              )}
               <span className="chain-name">{chain.chainName}</span>
               {index === 0 && <span className="node-label">Source</span>}
               {index === allChains.length - 1 && index > 0 && (

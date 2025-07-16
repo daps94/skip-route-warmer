@@ -50,9 +50,27 @@ export const useKeplrAddress = (chainInfo: ChainInfo | null) => {
 
   const getKeyFromKeplr = async () => {
     if (chainInfo) {
-      const key = await window.keplr?.getKey(chainInfo.chainId);
-      if (key) {
-        setAddress(key.bech32Address);
+      try {
+        // First try to suggest the chain to Keplr
+        if (window.keplr?.experimentalSuggestChain) {
+          try {
+            await window.keplr.experimentalSuggestChain(chainInfo);
+          } catch (error) {
+            console.log('Chain already added to Keplr or suggestion failed:', error);
+          }
+        }
+        
+        // Enable the chain
+        await window.keplr?.enable(chainInfo.chainId);
+        
+        // Get the key
+        const key = await window.keplr?.getKey(chainInfo.chainId);
+        if (key) {
+          setAddress(key.bech32Address);
+        }
+      } catch (error) {
+        console.error('Failed to get key from Keplr:', error);
+        setAddress("");
       }
     }
   };

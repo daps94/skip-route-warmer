@@ -79,6 +79,16 @@
   line-height: 1;
 }
 
+.chain-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: var(--bg-tertiary, #0f0f0f);
+  padding: 4px;
+  border: 2px solid var(--border-color, #2a2a2a);
+}
+
 .chain-name {
   font-weight: 500;
   color: var(--text-primary, #fff);
@@ -210,6 +220,11 @@
 
   .chain-icon {
     font-size: 24px;
+  }
+
+  .chain-logo {
+    width: 24px;
+    height: 24px;
   }
 
   .chain-name {

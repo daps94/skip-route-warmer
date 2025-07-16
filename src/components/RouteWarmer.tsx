@@ -1232,7 +1232,6 @@ const RouteWarmer: React.FC = () => {
                     setChannel('');
                     setDestinationChainId('');
                     setMemo('');
-                    setManualFee('0');
                     setError('');
                     setStatus('');
                   }}

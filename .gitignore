@@ -26,3 +26,6 @@ yarn-debug.log*
 yarn-error.log*
 
 .yarn
+
+# Lock files - only keep yarn.lock
+package-lock.json

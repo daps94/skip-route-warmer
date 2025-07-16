@@ -51,7 +51,6 @@ const RouteWarmer: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [status, setStatus] = useState<string>('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [manualFee, setManualFee] = useState<string>('0');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [showSourceDropdown, setShowSourceDropdown] = useState<boolean>(false);
   const [showDestDropdown, setShowDestDropdown] = useState<boolean>(false);
@@ -409,15 +408,8 @@ const RouteWarmer: React.FC = () => {
       if (gasUsed) {
         setStatus('Broadcasting transaction...');
         
-        // For route warming, use the same denom as the token being sent
-        // Convert manual fee to smallest unit if in human-readable mode
-        const tokenInfo = getTokenInfoWithMetadata(denom, robustChainInfo);
-        // For Eureka, always use 0 fee
-        const feeInSmallestUnit = activeTab === 'eureka' ? '0' : (
-          humanReadableMode && manualFee !== '0'
-            ? convertToSmallestUnit(manualFee, tokenInfo.decimals)
-            : manualFee
-        );
+        // For route warming, always use 0 fee
+        const feeInSmallestUnit = '0';
         
         await sendMsgs(
           window.keplr,
@@ -814,51 +806,6 @@ const RouteWarmer: React.FC = () => {
           </p>
         </div>
 
-        {/* Manual Fee Input */}
-        <div className="form-group">
-          <label>
-            Fee Amount (Route Warming)
-            {denom && effectiveChainInfo && (
-              <span className="amount-hint">
-                {(() => {
-                  const tokenInfo = getTokenInfoWithMetadata(denom, effectiveChainInfo);
-                  if (humanReadableMode) {
-                    return `(in ${tokenInfo.symbol}, using ${tokenInfo.decimals} decimals)`;
-                  } else {
-                    return `(in ${tokenInfo.symbol} smallest unit)`;
-                  }
-                })()}
-              </span>
-            )}
-          </label>
-          <input
-            type="text"
-            className="form-input"
-            value={manualFee}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                setManualFee(val);
-              }
-            }}
-            placeholder="0"
-          />
-          <p className="form-hint">Set to 0 for route warming. Fee uses same token as transfer.</p>
-          {manualFee && manualFee !== '0' && denom && effectiveChainInfo && (
-            <div className="amount-conversion">
-              {(() => {
-                const tokenInfo = getTokenInfoWithMetadata(denom, effectiveChainInfo);
-                if (humanReadableMode) {
-                  const rawFee = convertToSmallestUnit(manualFee, tokenInfo.decimals);
-                  return `= ${rawFee} ${tokenInfo.symbol} (raw)`;
-                } else {
-                  const prettyFee = formatDisplayAmount(manualFee, tokenInfo.decimals, true);
-                  return `= ${prettyFee} ${tokenInfo.symbol}`;
-                }
-              })()}
-            </div>
-          )}
-        </div>
 
         {/* Route Visualizer */}
         {sourceChainId && destinationChainId && (
